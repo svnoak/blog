@@ -1,4 +1,4 @@
-bloggy
-bloggy.db
+/bloggy
+*.db
 *.db-shm
 *.db-wal
