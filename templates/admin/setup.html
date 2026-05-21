@@ -1,0 +1,45 @@
+{{define "admin/setup.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Set up {{.Tenant.Name}}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="login-page">
+  <div class="login-box">
+    <h1 class="login-title">Set up {{.Tenant.Name}}</h1>
+    <p class="setup-hint">Create your admin account to get started.</p>
+
+    {{if .Error}}
+    <p class="error">
+      {{if eq .Error "mismatch"}}Passwords do not match.
+      {{else if eq .Error "exists"}}An account with that email already exists.
+      {{else}}All fields are required.
+      {{end}}
+    </p>
+    {{end}}
+
+    <form method="post" action="/admin/setup">
+      <div class="field">
+        <label for="name">Display name</label>
+        <input type="text" id="name" name="name" required autofocus>
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required>
+      </div>
+      <div class="field">
+        <label for="confirm">Confirm password</label>
+        <input type="password" id="confirm" name="confirm" required>
+      </div>
+      <button type="submit" class="btn-primary">Create account</button>
+    </form>
+  </div>
+</body>
+</html>
+{{end}}
