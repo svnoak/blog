@@ -1,0 +1,22 @@
+{{define "public/post.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Post.Title}} — {{.Tenant.Name}}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="public-page">
+  <header class="public-header">
+    <a href="/" class="site-name">{{.Tenant.Name}}</a>
+  </header>
+  <main class="public-main post-body">
+    <article>
+      <h1 class="post-title">{{.Post.Title}}</h1>
+      <div class="post-meta">Written by {{.Post.AuthorName}} on {{formatDate .Post.PublishedAt}}</div>
+      <div class="post-content">{{safeHTML .Content}}</div>
+    </article>
+  </main>
+</body>
+</html>
+{{end}}

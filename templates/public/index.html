@@ -1,0 +1,31 @@
+{{define "public/index.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Tenant.Name}}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="public-page">
+  <header class="public-header">
+    <a href="/" class="site-name">{{.Tenant.Name}}</a>
+  </header>
+  <main class="public-main">
+    {{if .Posts}}
+    <ul class="post-list">
+      {{range .Posts}}
+      <li class="post-list-item">
+        <a href="/posts/{{.Slug}}" class="post-list-title">{{.Title}}</a>
+        <div class="post-list-meta">
+          Written by {{.AuthorName}} on {{formatDate .PublishedAt}}
+        </div>
+      </li>
+      {{end}}
+    </ul>
+    {{else}}
+    <p class="empty-state">Nothing here yet.</p>
+    {{end}}
+  </main>
+</body>
+</html>
+{{end}}
