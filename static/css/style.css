@@ -445,16 +445,18 @@ button { font-family: var(--font-ui); cursor: pointer; }
   margin-top: 8px;
   padding-top: 6px;
   display: flex; justify-content: center;
+  overflow-x: auto;
 }
 .zen-toolbar { display: contents; }
 .zen-tb-inner {
   display: inline-flex; align-items: center;
   gap: 4px; padding: 4px;
+  flex-shrink: 0; flex-wrap: nowrap;
   background: var(--zen-paper-dp);
   border: 1px solid var(--zen-rule);
   border-radius: 10px;
 }
-.zen-tb-group { display: inline-flex; align-items: center; gap: 1px; }
+.zen-tb-group { display: inline-flex; align-items: center; gap: 1px; flex-shrink: 0; }
 .zen-tb-sep { width: 1px; height: 16px; background: var(--zen-rule); margin: 0 2px; }
 .zen-tb-btn {
   appearance: none; border: 0; background: transparent;
@@ -562,7 +564,7 @@ button { font-family: var(--font-ui); cursor: pointer; }
 #zen-bubble {
   position: fixed;
   z-index: 200;
-  display: inline-flex; align-items: center; gap: 2px;
+  display: inline-flex; align-items: center;
   padding: 4px;
   background: var(--zen-paper);
   border: 1px solid var(--zen-rule);
@@ -573,6 +575,9 @@ button { font-family: var(--font-ui); cursor: pointer; }
   transition: opacity .14s ease, transform .14s ease;
   pointer-events: none;
   white-space: nowrap;
+}
+.zen-bubble-buttons {
+  display: inline-flex; align-items: center; gap: 2px; flex-wrap: nowrap;
 }
 #zen-bubble.is-visible {
   opacity: 1;
