@@ -1,0 +1,10 @@
+{{define "admin-nav"}}
+<header class="admin-header">
+  <a href="/admin/posts" class="site-name">{{.Tenant.Name}}</a>
+  <nav class="admin-nav-links">
+    <a href="/admin/posts/new" class="btn-new">New post</a>
+    <a href="/admin/users" class="nav-link">Users</a>
+    <a href="/admin/logout" class="nav-link">Logout</a>
+  </nav>
+</header>
+{{end}}

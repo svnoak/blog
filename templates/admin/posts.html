@@ -1,0 +1,64 @@
+{{define "admin/posts.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Posts — {{.Tenant.Name}}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="admin-page">
+  {{template "admin-nav" .}}
+  <main class="admin-main">
+    {{if .Posts}}
+    <table class="post-table">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Posts}}
+        <tr>
+          <td class="post-title-cell">
+            <a href="/admin/posts/{{.ID}}/edit">{{if .Title}}{{.Title}}{{else}}<span class="untitled">Untitled</span>{{end}}</a>
+          </td>
+          <td>
+            {{if .IsPublished}}
+              <span class="badge badge-published">Published</span>
+            {{else}}
+              <span class="badge badge-draft">Draft</span>
+            {{end}}
+          </td>
+          <td class="date-cell">
+            {{if .IsPublished}}{{formatDate .PublishedAt}}{{else}}{{formatDateVal .UpdatedAt}}{{end}}
+          </td>
+          <td class="actions-cell">
+            {{if .IsPublished}}
+              <form method="post" action="/admin/posts/{{.ID}}/unpublish" style="display:inline">
+                <button type="submit" class="btn-action">Unpublish</button>
+              </form>
+            {{else}}
+              <form method="post" action="/admin/posts/{{.ID}}/publish" style="display:inline">
+                <button type="submit" class="btn-action">Publish</button>
+              </form>
+            {{end}}
+            <form method="post" action="/admin/posts/{{.ID}}/delete" style="display:inline" onsubmit="return confirm('Delete this post?')">
+              <button type="submit" class="btn-action btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="empty-state">
+      <p>No posts yet. <a href="/admin/posts/new">Write your first post.</a></p>
+    </div>
+    {{end}}
+  </main>
+</body>
+</html>
+{{end}}
