@@ -1,0 +1,150 @@
+{{define "admin/editor.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{if .Post}}{{if .Post.Title}}{{.Post.Title}}{{else}}Untitled{{end}}{{else}}New post{{end}}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="zen-page">
+
+  <!-- Top bar -->
+  <header id="zen-topbar" class="zen-topbar chrome">
+    <div class="zen-topbar-row">
+
+      <div class="zen-topbar-left">
+        <a href="/admin/posts" class="zen-back">← Posts</a>
+      </div>
+
+      <div class="zen-topbar-center">
+        <div class="zen-modes" role="tablist" aria-label="Editor mode">
+          <button id="btn-write" role="tab" class="mode-btn" aria-pressed="true"
+                  onclick="setMode('wysiwyg')">Write</button>
+          <button id="btn-md"    role="tab" class="mode-btn" aria-pressed="false"
+                  onclick="setMode('markdown')">Markdown</button>
+        </div>
+      </div>
+
+      <div class="zen-topbar-right">
+        <span id="save-status" class="save-status"></span>
+
+        <button type="button" id="toolbar-toggle-btn" class="zen-icon-btn is-active" title="Toggle toolbar (⌘/)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 5h10M3 8h10M3 11h6"/></svg>
+        </button>
+
+        <button type="button" id="focus-btn" class="zen-icon-btn" title="Focus mode (⌘.)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 5V3h2M14 5V3h-2M2 11v2h2M14 11v2h-2"/><circle cx="8" cy="8" r="2.2"/></svg>
+        </button>
+
+        <button type="button" id="theme-btn" class="zen-icon-btn" title="Theme">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11M2.5 8h11" opacity=".35"/><path d="M8 2.5A5.5 5.5 0 0 1 8 13.5z" fill="currentColor" stroke="none"/></svg>
+        </button>
+
+        <button type="button" class="zen-btn-secondary" onclick="submitPost('save')">Save</button>
+        {{if .Post}}
+          {{if .Post.IsPublished}}
+            <button type="button" class="zen-btn-secondary" onclick="submitPost('unpublish')">Unpublish</button>
+          {{else}}
+            <button type="button" class="zen-btn-primary" onclick="submitPost('publish')">Publish</button>
+          {{end}}
+        {{else}}
+          <button type="button" class="zen-btn-primary" onclick="submitPost('publish')">Publish</button>
+        {{end}}
+      </div>
+
+    </div>
+
+    <!-- Formatting toolbar (injected by toolbar.js) -->
+    <div id="toolbar-row"></div>
+  </header>
+
+  <!-- Selection bubble (populated by bubble.js) -->
+  <div id="zen-bubble"></div>
+
+  <!-- Theme / overflow menu -->
+  <div id="zen-menu">
+    <div class="zen-menu-section">Theme</div>
+    <div class="zen-menu-swatches">
+      <div class="zen-swatch" data-theme="paper"    style="background:#F6F1E7" onclick="setTheme('paper')"    title="Paper"><span class="ring"></span></div>
+      <div class="zen-swatch" data-theme="sepia"    style="background:#EFE2C8" onclick="setTheme('sepia')"    title="Sepia"><span class="ring"></span></div>
+      <div class="zen-swatch" data-theme="mist"     style="background:#F1F2EF" onclick="setTheme('mist')"     title="Mist"><span class="ring"></span></div>
+      <div class="zen-swatch" data-theme="midnight" style="background:#14130F;border-color:rgba(255,255,255,0.15)" onclick="setTheme('midnight')" title="Midnight"><span class="ring"></span></div>
+    </div>
+    <div class="zen-menu-sep"></div>
+    <button type="button" class="zen-menu-item" onclick="document.getElementById('focus-btn').click();document.getElementById('zen-menu').style.display='none'">
+      Focus mode <span>⌘.</span>
+    </button>
+  </div>
+
+  <!-- Status bar -->
+  <div id="statusbar" class="statusbar chrome">
+    <div class="status-group">
+      <span class="status-item" id="stat-words"><b>0</b> words</span>
+      <span class="status-item" id="stat-chars"><b>0</b> chars</span>
+      <span class="status-item" id="stat-read"><b>0</b> min read</span>
+    </div>
+    <div class="status-group">
+      <span class="status-item">
+        <span id="save-dot" class="save-dot"></span>
+        <span id="save-label">Draft</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Server form -->
+  <form id="post-form" method="post"
+        action="{{if .Post}}/admin/posts/{{.Post.ID}}{{else}}/admin/posts{{end}}">
+    <input type="hidden" name="content" id="content-input">
+    <input type="hidden" name="action"  id="action-input">
+
+    <div class="zen-page-content">
+      <div class="zen-column">
+        <input
+          type="text"
+          name="title"
+          id="title"
+          placeholder="Title"
+          class="zen-title"
+          value="{{if .Post}}{{.Post.Title}}{{end}}"
+          autocomplete="off"
+        >
+
+        <div
+          id="wysiwyg"
+          class="zen-editor"
+          contenteditable="true"
+          spellcheck="true"
+          data-placeholder="Begin where you are…"
+        ></div>
+
+        <textarea
+          id="md-editor"
+          class="zen-md-editor"
+          spellcheck="true"
+          placeholder="# Begin where you are…&#10;&#10;Write in Markdown."
+          style="display:none"
+        ></textarea>
+      </div>
+    </div>
+  </form>
+
+  <!-- Initial content: Go template HTML-escapes this inside textarea -->
+  <textarea id="initial-content" hidden>{{if .Post}}{{.Post.Content}}{{end}}</textarea>
+
+  <!-- Page data for JS -->
+  <script>
+    window.EDITOR_POST_ID      = {{if .Post}}{{.Post.ID}}{{else}}0{{end}};
+    window.EDITOR_IS_PUBLISHED = {{if .Post}}{{if .Post.IsPublished}}true{{else}}false{{end}}{{else}}false{{end}};
+    window.EDITOR_FORM_ACTION  = "{{if .Post}}/admin/posts/{{.Post.ID}}{{else}}/admin/posts{{end}}";
+  </script>
+
+  <script src="/static/js/editor/md-utils.js"></script>
+  <script src="/static/js/editor/bubble.js"></script>
+  <script src="/static/js/editor/toolbar.js"></script>
+  <script src="/static/js/editor/app.js"></script>
+</body>
+</html>
+{{end}}
