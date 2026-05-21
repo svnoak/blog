@@ -1,0 +1,52 @@
+{{define "admin/users.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Users — {{.Tenant.Name}}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="admin-page">
+  {{template "admin-nav" .}}
+  <main class="admin-main">
+    {{if .Error}}
+    <p class="error" style="margin-bottom:1.5rem">
+      {{if eq .Error "self"}}You cannot delete your own account.{{end}}
+    </p>
+    {{end}}
+
+    <div class="section-header">
+      <h2 class="section-title">Users</h2>
+      <a href="/admin/users/new" class="btn-new">Add user</a>
+    </div>
+
+    <table class="post-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Joined</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Users}}
+        <tr>
+          <td>{{.DisplayName}}{{if and $.User (eq $.User.ID .ID)}} <span class="you-badge">you</span>{{end}}</td>
+          <td class="date-cell">{{.Email}}</td>
+          <td class="date-cell">{{formatDateVal .CreatedAt}}</td>
+          <td class="actions-cell">
+            {{if not (and $.User (eq $.User.ID .ID))}}
+            <form method="post" action="/admin/users/{{.ID}}/delete" onsubmit="return confirm('Delete {{.DisplayName}}?')">
+              <button type="submit" class="btn-action btn-danger">Delete</button>
+            </form>
+            {{end}}
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </main>
+</body>
+</html>
+{{end}}
