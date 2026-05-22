@@ -49,7 +49,7 @@ function initBubble(editorEl) {
 
   function show(rect) {
     el.style.left = `${rect.left + rect.width / 2}px`;
-    el.style.top  = `${rect.top + window.scrollY}px`;
+    el.style.top  = `${rect.top}px`;
     el.classList.add('is-visible');
   }
 
