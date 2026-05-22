@@ -495,7 +495,7 @@ body::before {
 .post-title-cell a:hover { text-decoration: underline; }
 .untitled { color: var(--zen-ink-4); font-style: italic; }
 .date-cell { color: var(--zen-ink-3); font-size: 0.78rem; white-space: nowrap; }
-.actions-cell { white-space: nowrap; display: flex; gap: 0.5rem; align-items: center; }
+.actions-cell { white-space: nowrap; display: flex; gap: 0.5rem; align-items: center; height: 1.5rem; }
 
 /* ── Badges ── */
 .badge {
