@@ -364,11 +364,35 @@
   document.addEventListener('keydown', e => {
     const mod = e.metaKey || e.ctrlKey;
     if (!mod) return;
+
+    // Chrome shortcuts (work anywhere on the page)
     if (e.key === '.') { e.preventDefault(); toggleFocusMode(); }
     if (e.key === '/' || e.key === '\\') { e.preventDefault(); toggleToolbar(); }
     if (e.key.toLowerCase() === 'm' && e.shiftKey) {
       e.preventDefault();
       setMode(currentMode === 'wysiwyg' ? 'markdown' : 'wysiwyg');
+    }
+
+    // Formatting shortcuts — only when cursor is in the editor
+    const inEditor = document.activeElement === wysiwyg || document.activeElement === mdTextarea;
+    if (!inEditor) return;
+
+    if (!e.shiftKey && !e.altKey) {
+      if (e.key.toLowerCase() === 'b') { e.preventDefault(); _tbCmd('bold'); }
+      if (e.key.toLowerCase() === 'i') { e.preventDefault(); _tbCmd('italic'); }
+      if (e.key.toLowerCase() === 'e') { e.preventDefault(); _tbCmd('code'); }
+      if (e.key.toLowerCase() === 'k') { e.preventDefault(); _tbLink(); }
+    }
+    if (e.altKey && !e.shiftKey) {
+      if (e.code === 'Digit1') { e.preventDefault(); _tbCmd('heading', 'H1'); }
+      if (e.code === 'Digit2') { e.preventDefault(); _tbCmd('heading', 'H2'); }
+      if (e.code === 'Digit3') { e.preventDefault(); _tbCmd('heading', 'H3'); }
+    }
+    if (e.shiftKey && !e.altKey) {
+      if (e.key.toLowerCase() === 's') { e.preventDefault(); _tbCmd('strike'); }
+      if (e.code === 'Digit7') { e.preventDefault(); _tbCmd('ol'); }
+      if (e.code === 'Digit8') { e.preventDefault(); _tbCmd('ul'); }
+      if (e.code === 'Digit9') { e.preventDefault(); _tbCmd('quote'); }
     }
   });
 
