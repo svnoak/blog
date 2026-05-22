@@ -65,6 +65,8 @@ func migrate(db *sql.DB) error {
 	addColumnIfMissing(db, "tenants", "theme", `TEXT NOT NULL DEFAULT 'paper'`)
 	addColumnIfMissing(db, "tenants", "pub_font", `TEXT NOT NULL DEFAULT 'literary'`)
 	addColumnIfMissing(db, "tenants", "admin_font", `TEXT NOT NULL DEFAULT 'literary'`)
+	addColumnIfMissing(db, "tenants", "light_theme", `TEXT NOT NULL DEFAULT 'paper'`)
+	addColumnIfMissing(db, "tenants", "dark_theme", `TEXT NOT NULL DEFAULT 'ember'`)
 
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS custom_fonts (

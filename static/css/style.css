@@ -240,31 +240,6 @@ body::before {
   flex-shrink: 0;
 }
 .pub-theme-btn:hover { color: var(--zen-ink-3); background: var(--zen-accent-s); }
-.pub-theme-menu {
-  position: fixed;
-  top: 52px; right: 1.5rem;
-  background: var(--zen-paper);
-  border: 1px solid var(--zen-rule);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0,0,0,.12);
-  padding: 8px;
-  z-index: 100;
-  display: flex; gap: 6px;
-  animation: menuIn .12s ease-out;
-}
-.pub-swatch {
-  width: 22px; height: 22px; border-radius: 50%;
-  border: 2px solid var(--zen-rule);
-  cursor: pointer; position: relative;
-  transition: border-color .15s;
-}
-.pub-swatch.is-active { border-color: var(--zen-accent); }
-.pub-swatch.is-active::after {
-  content: '';
-  position: absolute; inset: -4px;
-  border: 1.5px dashed var(--zen-accent);
-  border-radius: 50%;
-}
 
 /* ── Admin settings ── */
 .settings-section { margin-bottom: 2rem; }
@@ -618,45 +593,46 @@ body::before {
 }
 
 /* Theme variants — apply to any page via body[data-theme] */
-body[data-theme="sepia"] {
-  --zen-paper:    #EFE2C8;
-  --zen-paper-dp: #E6D6B3;
-  --zen-ink:      #2A1F10;
-  --zen-ink-2:    #5A4A32;
-  --zen-ink-3:    #8A7754;
-  --zen-ink-4:    #B8A47E;
-  --zen-rule:     rgba(42,31,16,.12);
-  --zen-accent:   #7A4B2A;
-  --zen-accent-s: rgba(122,75,42,.14);
-  --zen-chrome:   rgba(239,226,200,.84);
+body[data-theme="slate"] {
+  --zen-paper:    #F2F2F2;
+  --zen-paper-dp: #E8E8E8;
+  --zen-ink:      #1A1A1A;
+  --zen-ink-2:    #4A4A4A;
+  --zen-ink-3:    #8A8A8A;
+  --zen-ink-4:    #BBBBBB;
+  --zen-rule:     rgba(0,0,0,.09);
+  --zen-accent:   #4A7FA5;
+  --zen-accent-s: rgba(74,127,165,.11);
+  --zen-chrome:   rgba(242,242,242,.84);
 }
-body[data-theme="mist"] {
-  --zen-paper:    #F1F2EF;
-  --zen-paper-dp: #E6E8E3;
-  --zen-ink:      #1B1F1C;
-  --zen-ink-2:    #4A4F4A;
-  --zen-ink-3:    #84897F;
-  --zen-ink-4:    #B3B8AD;
-  --zen-rule:     rgba(27,31,28,.10);
-  --zen-accent:   #527187;
-  --zen-accent-s: rgba(82,113,135,.14);
-  --zen-chrome:   rgba(241,242,239,.84);
+body[data-theme="ember"] {
+  --zen-paper:    #1C1A18;
+  --zen-paper-dp: #242220;
+  --zen-ink:      #E8DFD1;
+  --zen-ink-2:    #B5A896;
+  --zen-ink-3:    #7A6E60;
+  --zen-ink-4:    #4A4238;
+  --zen-rule:     rgba(232,223,209,.09);
+  --zen-accent:   #D4956A;
+  --zen-accent-s: rgba(212,149,106,.10);
+  --zen-chrome:   rgba(28,26,24,.84);
 }
-body[data-theme="midnight"] {
-  --zen-paper:    #14130F;
-  --zen-paper-dp: #1A1814;
-  --zen-ink:      #ECE4D3;
-  --zen-ink-2:    #B9AE97;
-  --zen-ink-3:    #7A7160;
-  --zen-ink-4:    #4B463C;
-  --zen-rule:     rgba(236,228,211,.10);
-  --zen-accent:   #B6C5A6;
-  --zen-accent-s: rgba(182,197,166,.10);
-  --zen-chrome:   rgba(20,19,15,.84);
+body[data-theme="carbon"] {
+  --zen-paper:    #111111;
+  --zen-paper-dp: #1A1A1A;
+  --zen-ink:      #D4D4D4;
+  --zen-ink-2:    #909090;
+  --zen-ink-3:    #505050;
+  --zen-ink-4:    #333333;
+  --zen-rule:     rgba(255,255,255,.07);
+  --zen-accent:   #58A6FF;
+  --zen-accent-s: rgba(88,166,255,.10);
+  --zen-chrome:   rgba(17,17,17,.84);
 }
 
-/* Midnight overrides body grain */
-body[data-theme="midnight"]::before {
+/* Dark theme grain override */
+body[data-theme="ember"]::before,
+body[data-theme="carbon"]::before {
   background-image: radial-gradient(rgba(255,255,255,0.022) 1px, transparent 1px);
   mix-blend-mode: screen;
 }

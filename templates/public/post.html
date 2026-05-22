@@ -21,16 +21,11 @@
   <header class="public-header">
     <a href="/" class="site-name">{{.Tenant.Name}}</a>
     {{if .IsPreview}}{{else if .LoggedIn}}<a href="/admin/posts/{{.Post.ID}}/edit" class="pub-edit-link">Edit post</a>{{end}}
-    <button class="pub-theme-btn" id="pub-theme-btn" title="Switch theme" aria-label="Switch theme">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 1 0 7 7"/></svg>
+    <button class="pub-theme-btn" id="pub-theme-btn" title="Toggle theme" aria-label="Toggle theme">
+      <svg id="pub-theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
+      <svg id="pub-theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
     </button>
   </header>
-  <div class="pub-theme-menu" id="pub-theme-menu" style="display:none">
-    <div class="pub-swatch" data-theme="paper" title="Paper" style="background:#F6F1E7"></div>
-    <div class="pub-swatch" data-theme="sepia" title="Sepia" style="background:#EFE2C8"></div>
-    <div class="pub-swatch" data-theme="mist" title="Mist" style="background:#F1F2EF"></div>
-    <div class="pub-swatch" data-theme="midnight" title="Midnight" style="background:#14130F"></div>
-  </div>
   <main class="public-main post-body">
     <article>
       <h1 class="post-title">{{.Post.Title}}</h1>
@@ -40,39 +35,35 @@
   </main>
   <script>
     (function() {
-      var DEFAULT_THEME = "{{.Tenant.Theme}}";
-      var stored = localStorage.getItem('bloggy-theme');
-      var theme = stored || DEFAULT_THEME || 'paper';
-      document.body.setAttribute('data-theme', theme);
+      var LIGHT = "{{.Tenant.LightTheme}}" || 'paper';
+      var DARK  = "{{.Tenant.DarkTheme}}"  || 'ember';
+      var iconSun  = document.getElementById('pub-theme-icon-sun');
+      var iconMoon = document.getElementById('pub-theme-icon-moon');
 
-      var btn = document.getElementById('pub-theme-btn');
-      var menu = document.getElementById('pub-theme-menu');
+      function prefersDark() { return window.matchMedia('(prefers-color-scheme: dark)').matches; }
 
-      function markActive(t) {
-        document.querySelectorAll('.pub-swatch').forEach(function(s) {
-          s.classList.toggle('is-active', s.dataset.theme === t);
+      function applyPref(pref) {
+        var t = pref === 'dark' ? DARK : LIGHT;
+        document.body.setAttribute('data-theme', t);
+        iconSun.style.display  = pref === 'light' ? 'none' : '';
+        iconMoon.style.display = pref === 'dark'  ? 'none' : '';
+      }
+
+      var stored = localStorage.getItem('bloggy-theme-pref');
+      applyPref(stored || (prefersDark() ? 'dark' : 'light'));
+
+      document.getElementById('pub-theme-btn').addEventListener('click', function() {
+        var isDark = document.body.getAttribute('data-theme') === DARK;
+        var next = isDark ? 'light' : 'dark';
+        localStorage.setItem('bloggy-theme-pref', next);
+        applyPref(next);
+      });
+
+      if (!stored) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+          if (!localStorage.getItem('bloggy-theme-pref')) applyPref(e.matches ? 'dark' : 'light');
         });
       }
-      markActive(theme);
-
-      btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
-      });
-
-      document.querySelectorAll('.pub-swatch').forEach(function(s) {
-        s.addEventListener('click', function() {
-          var t = s.dataset.theme;
-          document.body.setAttribute('data-theme', t);
-          localStorage.setItem('bloggy-theme', t);
-          markActive(t);
-          menu.style.display = 'none';
-        });
-      });
-
-      document.addEventListener('click', function() {
-        menu.style.display = 'none';
-      });
     })();
   </script>
 </body>

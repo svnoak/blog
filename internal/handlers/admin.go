@@ -287,7 +287,7 @@ func (h *AdminHandler) SettingsGet(w http.ResponseWriter, r *http.Request) {
 func (h *AdminHandler) SettingsPost(w http.ResponseWriter, r *http.Request) {
 	tenant := middleware.TenantFromCtx(r.Context())
 	middleware.UpdateTenantName(h.DB, tenant.ID, r.FormValue("blog_name"))
-	middleware.UpdateTenantTheme(h.DB, tenant.ID, r.FormValue("theme"))
+	middleware.UpdateTenantThemes(h.DB, tenant.ID, r.FormValue("light_theme"), r.FormValue("dark_theme"))
 	middleware.UpdateTenantFonts(h.DB, tenant.ID, r.FormValue("pub_font"), r.FormValue("admin_font"))
 	http.Redirect(w, r, "/admin/settings", http.StatusFound)
 }

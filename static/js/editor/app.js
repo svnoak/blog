@@ -85,8 +85,10 @@
   settingsPanel && settingsPanel.addEventListener('click', e => e.stopPropagation());
 
   // ── Theme ─────────────────────────────────────────────────────────────────────
-  const darkThemes = new Set(['midnight']);
+  const validThemes = new Set(['paper', 'slate', 'ember', 'carbon']);
+  const darkThemes  = new Set(['ember', 'carbon']);
   function setTheme(name) {
+    if (!validThemes.has(name)) name = 'paper';
     if (name === 'paper') document.body.removeAttribute('data-theme');
     else document.body.setAttribute('data-theme', name);
     localStorage.setItem('bloggy-theme', name);
@@ -535,7 +537,7 @@
       e.preventDefault();
       const current = localStorage.getItem('bloggy-theme') || 'paper';
       if (darkThemes.has(current)) setTheme(localStorage.getItem('bloggy-light-theme') || 'paper');
-      else setTheme('midnight');
+      else setTheme('ember');
     }
     if (e.key.toLowerCase() === 'm' && e.shiftKey) {
       e.preventDefault();

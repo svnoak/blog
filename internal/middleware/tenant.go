@@ -9,13 +9,14 @@ import (
 )
 
 type Tenant struct {
-	ID        int64
-	Name      string
-	Domain    string
-	Theme     string
-	PubFont   string
-	AdminFont string
-	CreatedAt time.Time
+	ID         int64
+	Name       string
+	Domain     string
+	LightTheme string
+	DarkTheme  string
+	PubFont    string
+	AdminFont  string
+	CreatedAt  time.Time
 }
 
 type CustomFont struct {
@@ -46,8 +47,8 @@ func UpsertTenant(db *sql.DB, name, domain string) (*Tenant, error) {
 func getTenantByDomain(db *sql.DB, domain string) (*Tenant, error) {
 	var t Tenant
 	err := db.QueryRow(
-		`SELECT id, name, domain, theme, pub_font, admin_font, created_at FROM tenants WHERE domain = ?`, domain,
-	).Scan(&t.ID, &t.Name, &t.Domain, &t.Theme, &t.PubFont, &t.AdminFont, &t.CreatedAt)
+		`SELECT id, name, domain, light_theme, dark_theme, pub_font, admin_font, created_at FROM tenants WHERE domain = ?`, domain,
+	).Scan(&t.ID, &t.Name, &t.Domain, &t.LightTheme, &t.DarkTheme, &t.PubFont, &t.AdminFont, &t.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -105,12 +106,16 @@ func DeleteCustomFont(db *sql.DB, tenantID, fontID int64) (string, error) {
 	return filename, err
 }
 
-func UpdateTenantTheme(db *sql.DB, tenantID int64, theme string) error {
-	valid := map[string]bool{"paper": true, "sepia": true, "mist": true, "midnight": true}
-	if !valid[theme] {
-		theme = "paper"
+func UpdateTenantThemes(db *sql.DB, tenantID int64, lightTheme, darkTheme string) error {
+	validLight := map[string]bool{"paper": true, "slate": true}
+	validDark := map[string]bool{"ember": true, "carbon": true}
+	if !validLight[lightTheme] {
+		lightTheme = "paper"
 	}
-	_, err := db.Exec(`UPDATE tenants SET theme = ? WHERE id = ?`, theme, tenantID)
+	if !validDark[darkTheme] {
+		darkTheme = "ember"
+	}
+	_, err := db.Exec(`UPDATE tenants SET light_theme = ?, dark_theme = ? WHERE id = ?`, lightTheme, darkTheme, tenantID)
 	return err
 }
 

@@ -22,28 +22,35 @@
       </div>
 
       <div class="settings-section">
-        <div class="settings-label">Default public theme</div>
-        <div class="settings-hint">Visitors can still change this from the site header.</div>
+        <div class="settings-label">Light mode theme</div>
+        <div class="settings-hint">Used when the visitor's device is in light mode.</div>
         <div class="theme-swatches">
           <label class="theme-swatch-label">
-            <input type="radio" name="theme" value="paper" {{if eq .Tenant.Theme "paper"}}checked{{end}}>
-            <span class="theme-swatch-dot" style="background:#F6F1E7"></span>
+            <input type="radio" name="light_theme" value="paper" {{if eq .Tenant.LightTheme "paper"}}checked{{end}}>
+            <span class="theme-swatch-dot" style="background:#F5F0E6"></span>
             <span>Paper</span>
           </label>
           <label class="theme-swatch-label">
-            <input type="radio" name="theme" value="sepia" {{if eq .Tenant.Theme "sepia"}}checked{{end}}>
-            <span class="theme-swatch-dot" style="background:#EFE2C8"></span>
-            <span>Sepia</span>
+            <input type="radio" name="light_theme" value="slate" {{if eq .Tenant.LightTheme "slate"}}checked{{end}}>
+            <span class="theme-swatch-dot" style="background:#F2F2F2"></span>
+            <span>Slate</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Dark mode theme</div>
+        <div class="settings-hint">Used when the visitor's device is in dark mode.</div>
+        <div class="theme-swatches">
+          <label class="theme-swatch-label">
+            <input type="radio" name="dark_theme" value="ember" {{if eq .Tenant.DarkTheme "ember"}}checked{{end}}>
+            <span class="theme-swatch-dot" style="background:#1C1A18;border-color:rgba(255,255,255,0.15)"></span>
+            <span>Ember</span>
           </label>
           <label class="theme-swatch-label">
-            <input type="radio" name="theme" value="mist" {{if eq .Tenant.Theme "mist"}}checked{{end}}>
-            <span class="theme-swatch-dot" style="background:#F1F2EF"></span>
-            <span>Mist</span>
-          </label>
-          <label class="theme-swatch-label">
-            <input type="radio" name="theme" value="midnight" {{if eq .Tenant.Theme "midnight"}}checked{{end}}>
-            <span class="theme-swatch-dot" style="background:#14130F;border-color:rgba(255,255,255,0.15)"></span>
-            <span>Midnight</span>
+            <input type="radio" name="dark_theme" value="carbon" {{if eq .Tenant.DarkTheme "carbon"}}checked{{end}}>
+            <span class="theme-swatch-dot" style="background:#111111;border-color:rgba(255,255,255,0.15)"></span>
+            <span>Carbon</span>
           </label>
         </div>
       </div>
