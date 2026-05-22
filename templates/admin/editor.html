@@ -5,8 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{if .Post}}{{if .Post.Title}}{{.Post.Title}}{{else}}Untitled{{end}}{{else}}New post{{end}}</title>
   <link rel="stylesheet" href="/static/css/style.css">
+  {{if .CustomFonts}}<style>{{range .CustomFonts}}
+  @font-face{font-family:'{{.Name}}';src:url('/static/fonts/user/{{.Filename}}') format('woff2')}
+  body[data-font="{{.Name}}"]{--zen-font:'{{.Name}}',Georgia,serif}{{end}}</style>{{end}}
 </head>
-<body class="zen-page">
+<body class="zen-page" data-font="{{.Tenant.AdminFont}}">
 
   <!-- Top bar -->
   <header id="zen-topbar" class="zen-topbar chrome">

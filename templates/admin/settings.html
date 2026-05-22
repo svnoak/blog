@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Settings — {{.Tenant.Name}}</title>
   <link rel="stylesheet" href="/static/css/style.css">
+  {{if .CustomFonts}}<style>{{range .CustomFonts}}
+  @font-face{font-family:'{{.Name}}';src:url('/static/fonts/user/{{.Filename}}') format('woff2')}{{end}}</style>{{end}}
 </head>
-<body class="admin-page">
+<body class="admin-page" data-font="{{.Tenant.AdminFont}}">
   {{template "admin-nav" .}}
   <main class="admin-main">
     <div class="section-header">
@@ -18,6 +20,7 @@
         <div class="settings-label">Blog name</div>
         <input type="text" name="blog_name" value="{{.Tenant.Name}}" class="settings-input" maxlength="100" required>
       </div>
+
       <div class="settings-section">
         <div class="settings-label">Default public theme</div>
         <div class="settings-hint">Visitors can still change this from the site header.</div>
@@ -44,8 +47,93 @@
           </label>
         </div>
       </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Public font</div>
+        <div class="settings-hint">The typeface used on your blog for readers.</div>
+        <div class="font-options">
+          <label class="font-option-label">
+            <input type="radio" name="pub_font" value="literary" {{if eq .Tenant.PubFont "literary"}}checked{{end}}>
+            <span class="font-option-preview" style="font-family:'Newsreader',Georgia,serif">Literary</span>
+            <span class="font-option-name">Newsreader</span>
+          </label>
+          <label class="font-option-label">
+            <input type="radio" name="pub_font" value="sans" {{if eq .Tenant.PubFont "sans"}}checked{{end}}>
+            <span class="font-option-preview" style="font-family:'Geist',system-ui,sans-serif">Clean</span>
+            <span class="font-option-name">Geist</span>
+          </label>
+          <label class="font-option-label">
+            <input type="radio" name="pub_font" value="mono" {{if eq .Tenant.PubFont "mono"}}checked{{end}}>
+            <span class="font-option-preview" style="font-family:'JetBrains Mono',monospace">Mono</span>
+            <span class="font-option-name">JetBrains Mono</span>
+          </label>
+          {{range .CustomFonts}}
+          <label class="font-option-label">
+            <input type="radio" name="pub_font" value="{{.Name}}" {{if eq $.Tenant.PubFont .Name}}checked{{end}}>
+            <span class="font-option-preview" style="font-family:'{{.Name}}',Georgia,serif">{{.Name}}</span>
+            <span class="font-option-name">Custom</span>
+          </label>
+          {{end}}
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Editor font</div>
+        <div class="settings-hint">The typeface used in the admin writing interface.</div>
+        <div class="font-options">
+          <label class="font-option-label">
+            <input type="radio" name="admin_font" value="literary" {{if eq .Tenant.AdminFont "literary"}}checked{{end}}>
+            <span class="font-option-preview" style="font-family:'Newsreader',Georgia,serif">Literary</span>
+            <span class="font-option-name">Newsreader</span>
+          </label>
+          <label class="font-option-label">
+            <input type="radio" name="admin_font" value="sans" {{if eq .Tenant.AdminFont "sans"}}checked{{end}}>
+            <span class="font-option-preview" style="font-family:'Geist',system-ui,sans-serif">Clean</span>
+            <span class="font-option-name">Geist</span>
+          </label>
+          <label class="font-option-label">
+            <input type="radio" name="admin_font" value="mono" {{if eq .Tenant.AdminFont "mono"}}checked{{end}}>
+            <span class="font-option-preview" style="font-family:'JetBrains Mono',monospace">Mono</span>
+            <span class="font-option-name">JetBrains Mono</span>
+          </label>
+          {{range .CustomFonts}}
+          <label class="font-option-label">
+            <input type="radio" name="admin_font" value="{{.Name}}" {{if eq $.Tenant.AdminFont .Name}}checked{{end}}>
+            <span class="font-option-preview" style="font-family:'{{.Name}}',Georgia,serif">{{.Name}}</span>
+            <span class="font-option-name">Custom</span>
+          </label>
+          {{end}}
+        </div>
+      </div>
+
       <button type="submit" class="btn-primary">Save</button>
     </form>
+
+    <div class="settings-section" style="margin-top:2rem">
+      <div class="settings-label">Custom fonts</div>
+      <div class="settings-hint">Upload a .woff2 file to use your own typeface.</div>
+
+      {{if .CustomFonts}}
+      <ul class="custom-font-list">
+        {{range .CustomFonts}}
+        <li class="custom-font-item">
+          <span class="custom-font-name" style="font-family:'{{.Name}}',Georgia,serif">{{.Name}}</span>
+          <form method="post" action="/admin/settings/fonts/{{.ID}}/delete" style="display:inline">
+            <button type="submit" class="btn-danger-sm">Delete</button>
+          </form>
+        </li>
+        {{end}}
+      </ul>
+      {{end}}
+
+      <form method="post" action="/admin/settings/fonts" enctype="multipart/form-data" class="font-upload-form">
+        <input type="text" name="font_name" placeholder="Font name" class="settings-input" style="width:180px" maxlength="50" required>
+        <input type="file" name="font_file" accept=".woff2" required class="font-file-input">
+        <button type="submit" class="btn-secondary">Upload</button>
+      </form>
+      {{if .FontError}}<p class="settings-error">{{.FontError}}</p>{{end}}
+    </div>
+
   </main>
 </body>
 </html>

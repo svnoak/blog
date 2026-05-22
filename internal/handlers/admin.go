@@ -3,8 +3,13 @@ package handlers
 import (
 	"database/sql"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strconv"
+	"strings"
 
 	"bloggy/internal/middleware"
 	"bloggy/internal/models"
@@ -40,9 +45,10 @@ func (h *AdminHandler) PostList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.Tmpls.Render(w, "admin/posts.html", map[string]any{
-		"Tenant": tenant,
-		"User":   user,
-		"Posts":  posts,
+		"Tenant":      tenant,
+		"User":        user,
+		"Posts":       posts,
+		"CustomFonts": h.customFonts(tenant.ID),
 	})
 }
 
@@ -50,9 +56,10 @@ func (h *AdminHandler) NewPost(w http.ResponseWriter, r *http.Request) {
 	tenant := middleware.TenantFromCtx(r.Context())
 	user, _ := h.currentUser(r)
 	h.Tmpls.Render(w, "admin/editor.html", map[string]any{
-		"Tenant": tenant,
-		"User":   user,
-		"Post":   nil,
+		"Tenant":      tenant,
+		"User":        user,
+		"Post":        nil,
+		"CustomFonts": h.customFonts(tenant.ID),
 	})
 }
 
@@ -93,9 +100,10 @@ func (h *AdminHandler) EditPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.Tmpls.Render(w, "admin/editor.html", map[string]any{
-		"Tenant": tenant,
-		"User":   user,
-		"Post":   post,
+		"Tenant":      tenant,
+		"User":        user,
+		"Post":        post,
+		"CustomFonts": h.customFonts(tenant.ID),
 	})
 }
 
@@ -143,12 +151,27 @@ func (h *AdminHandler) DeletePost(w http.ResponseWriter, r *http.Request) {
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 
+func (h *AdminHandler) customFonts(tenantID int64) []middleware.CustomFont {
+	fonts, _ := middleware.ListCustomFonts(h.DB, tenantID)
+	return fonts
+}
+
+var fontErrorMsg = map[string]string{
+	"toobig": "File too large (max 3 MB).",
+	"type":   "Only .woff2 files are accepted.",
+	"exists": "A font with that name already exists.",
+	"name":   "Please enter a font name.",
+	"file":   "No file received.",
+}
+
 func (h *AdminHandler) SettingsGet(w http.ResponseWriter, r *http.Request) {
 	tenant := middleware.TenantFromCtx(r.Context())
 	user, _ := h.currentUser(r)
 	h.Tmpls.Render(w, "admin/settings.html", map[string]any{
-		"Tenant": tenant,
-		"User":   user,
+		"Tenant":      tenant,
+		"User":        user,
+		"CustomFonts": h.customFonts(tenant.ID),
+		"FontError":   fontErrorMsg[r.URL.Query().Get("font_error")],
 	})
 }
 
@@ -156,6 +179,76 @@ func (h *AdminHandler) SettingsPost(w http.ResponseWriter, r *http.Request) {
 	tenant := middleware.TenantFromCtx(r.Context())
 	middleware.UpdateTenantName(h.DB, tenant.ID, r.FormValue("blog_name"))
 	middleware.UpdateTenantTheme(h.DB, tenant.ID, r.FormValue("theme"))
+	middleware.UpdateTenantFonts(h.DB, tenant.ID, r.FormValue("pub_font"), r.FormValue("admin_font"))
+	http.Redirect(w, r, "/admin/settings", http.StatusFound)
+}
+
+var safeFontName = regexp.MustCompile(`[^a-zA-Z0-9 \-]`)
+
+func (h *AdminHandler) FontUpload(w http.ResponseWriter, r *http.Request) {
+	tenant := middleware.TenantFromCtx(r.Context())
+
+	r.Body = http.MaxBytesReader(w, r.Body, 3<<20) // 3 MB
+	if err := r.ParseMultipartForm(3 << 20); err != nil {
+		http.Redirect(w, r, "/admin/settings?font_error=toobig", http.StatusFound)
+		return
+	}
+
+	name := strings.TrimSpace(safeFontName.ReplaceAllString(r.FormValue("font_name"), ""))
+	if name == "" {
+		http.Redirect(w, r, "/admin/settings?font_error=name", http.StatusFound)
+		return
+	}
+
+	file, header, err := r.FormFile("font_file")
+	if err != nil {
+		http.Redirect(w, r, "/admin/settings?font_error=file", http.StatusFound)
+		return
+	}
+	defer file.Close()
+
+	if !strings.HasSuffix(strings.ToLower(header.Filename), ".woff2") {
+		http.Redirect(w, r, "/admin/settings?font_error=type", http.StatusFound)
+		return
+	}
+
+	// Sanitize filename: tenantID_sanitizedName.woff2
+	safeName := strings.ReplaceAll(strings.ToLower(name), " ", "-")
+	filename := fmt.Sprintf("%d_%s.woff2", tenant.ID, safeName)
+	dest := filepath.Join("static", "fonts", "user", filename)
+
+	out, err := os.Create(dest)
+	if err != nil {
+		http.Error(w, "could not save font", http.StatusInternalServerError)
+		return
+	}
+	defer out.Close()
+	if _, err := io.Copy(out, file); err != nil {
+		os.Remove(dest)
+		http.Error(w, "could not save font", http.StatusInternalServerError)
+		return
+	}
+
+	if err := middleware.AddCustomFont(h.DB, tenant.ID, name, filename); err != nil {
+		os.Remove(dest)
+		http.Redirect(w, r, "/admin/settings?font_error=exists", http.StatusFound)
+		return
+	}
+
+	http.Redirect(w, r, "/admin/settings", http.StatusFound)
+}
+
+func (h *AdminHandler) FontDelete(w http.ResponseWriter, r *http.Request) {
+	tenant := middleware.TenantFromCtx(r.Context())
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Redirect(w, r, "/admin/settings", http.StatusFound)
+		return
+	}
+	filename, err := middleware.DeleteCustomFont(h.DB, tenant.ID, id)
+	if err == nil && filename != "" {
+		os.Remove(filepath.Join("static", "fonts", "user", filename))
+	}
 	http.Redirect(w, r, "/admin/settings", http.StatusFound)
 }
 

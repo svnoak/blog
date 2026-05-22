@@ -5,8 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{.Post.Title}} — {{.Tenant.Name}}</title>
   <link rel="stylesheet" href="/static/css/style.css">
+  {{if .CustomFonts}}<style>{{range .CustomFonts}}
+  @font-face{font-family:'{{.Name}}';src:url('/static/fonts/user/{{.Filename}}') format('woff2')}
+  body[data-font="{{.Name}}"]{--zen-font:'{{.Name}}',Georgia,serif}{{end}}</style>{{end}}
 </head>
-<body class="public-page">
+<body class="public-page" data-font="{{.Tenant.PubFont}}">
   <header class="public-header">
     <a href="/" class="site-name">{{.Tenant.Name}}</a>
     <button class="pub-theme-btn" id="pub-theme-btn" title="Switch theme" aria-label="Switch theme">

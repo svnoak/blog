@@ -295,6 +295,48 @@ body::before {
   flex-shrink: 0;
 }
 
+/* Font picker */
+.font-options { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+.font-option-label {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  cursor: pointer;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: border-color .15s, background .15s;
+  min-width: 90px;
+}
+.font-option-label:has(input:checked) {
+  border-color: var(--zen-rule);
+  background: var(--zen-paper-dp);
+}
+.font-option-label input[type="radio"] { display: none; }
+.font-option-preview {
+  font-size: 1.05rem;
+  color: var(--zen-ink);
+  line-height: 1.2;
+}
+.font-option-name {
+  font-size: 0.7rem;
+  font-family: var(--zen-font-ui);
+  color: var(--zen-ink-3);
+}
+
+/* Custom font list */
+.custom-font-list { list-style: none; margin: 0.75rem 0 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.custom-font-item { display: flex; align-items: center; gap: 1rem; font-size: 0.88rem; }
+.custom-font-name { font-size: 1rem; color: var(--zen-ink); }
+.btn-danger-sm {
+  background: none; border: 1px solid rgba(181,52,31,0.3);
+  color: var(--danger); border-radius: var(--radius);
+  padding: 2px 8px; font-size: 0.72rem; font-family: var(--zen-font-ui);
+  cursor: pointer; transition: background .15s, color .15s;
+}
+.btn-danger-sm:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+.font-upload-form { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.75rem; }
+.font-file-input { font-size: 0.82rem; font-family: var(--zen-font-ui); color: var(--zen-ink-2); }
+.settings-error { font-size: 0.82rem; color: var(--danger); margin-top: 0.5rem; }
+
 /* ── Admin layout ── */
 .admin-page { font-family: var(--zen-font-ui); }
 
@@ -592,6 +634,16 @@ body[data-theme="midnight"]::before {
   mix-blend-mode: screen;
 }
 
+/* Font themes — body[data-font] */
+/* literary is the default (:root), no override needed */
+body[data-font="sans"] {
+  --zen-font: 'Geist', system-ui, -apple-system, sans-serif;
+}
+body[data-font="mono"] {
+  --zen-font:    'JetBrains Mono', 'Fira Code', monospace;
+  --zen-font-ui: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
 /* zen-page body overrides */
 .zen-page { background: var(--zen-paper); color: var(--zen-ink); }
 
@@ -812,8 +864,8 @@ body[data-theme="midnight"]::before {
   min-height: calc(100vh - 300px);
   appearance: none; border: 0; outline: 0;
   background: transparent; resize: none;
-  font-family: var(--zen-font-mono);
-  font-size: 0.88rem; line-height: 1.75;
+  font-family: var(--zen-font-ui);
+  font-size: 0.95rem; line-height: 1.75;
   color: var(--zen-ink); caret-color: var(--zen-accent);
   padding: 0 0 4rem;
 }

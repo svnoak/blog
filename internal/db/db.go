@@ -63,5 +63,18 @@ func migrate(db *sql.DB) error {
 		return err
 	}
 	addColumnIfMissing(db, "tenants", "theme", `TEXT NOT NULL DEFAULT 'paper'`)
-	return nil
+	addColumnIfMissing(db, "tenants", "pub_font", `TEXT NOT NULL DEFAULT 'literary'`)
+	addColumnIfMissing(db, "tenants", "admin_font", `TEXT NOT NULL DEFAULT 'literary'`)
+
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS custom_fonts (
+			id         INTEGER PRIMARY KEY AUTOINCREMENT,
+			tenant_id  INTEGER NOT NULL REFERENCES tenants(id),
+			name       TEXT NOT NULL,
+			filename   TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(tenant_id, name)
+		);
+	`)
+	return err
 }

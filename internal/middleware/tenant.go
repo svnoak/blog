@@ -13,7 +13,15 @@ type Tenant struct {
 	Name      string
 	Domain    string
 	Theme     string
+	PubFont   string
+	AdminFont string
 	CreatedAt time.Time
+}
+
+type CustomFont struct {
+	ID       int64
+	Name     string
+	Filename string
 }
 
 type contextKey int
@@ -38,8 +46,8 @@ func UpsertTenant(db *sql.DB, name, domain string) (*Tenant, error) {
 func getTenantByDomain(db *sql.DB, domain string) (*Tenant, error) {
 	var t Tenant
 	err := db.QueryRow(
-		`SELECT id, name, domain, theme, created_at FROM tenants WHERE domain = ?`, domain,
-	).Scan(&t.ID, &t.Name, &t.Domain, &t.Theme, &t.CreatedAt)
+		`SELECT id, name, domain, theme, pub_font, admin_font, created_at FROM tenants WHERE domain = ?`, domain,
+	).Scan(&t.ID, &t.Name, &t.Domain, &t.Theme, &t.PubFont, &t.AdminFont, &t.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -52,6 +60,49 @@ func UpdateTenantName(db *sql.DB, tenantID int64, name string) error {
 	}
 	_, err := db.Exec(`UPDATE tenants SET name = ? WHERE id = ?`, name, tenantID)
 	return err
+}
+
+func UpdateTenantFonts(db *sql.DB, tenantID int64, pubFont, adminFont string) error {
+	if pubFont == "" {
+		pubFont = "literary"
+	}
+	if adminFont == "" {
+		adminFont = "literary"
+	}
+	_, err := db.Exec(`UPDATE tenants SET pub_font = ?, admin_font = ? WHERE id = ?`, pubFont, adminFont, tenantID)
+	return err
+}
+
+func ListCustomFonts(db *sql.DB, tenantID int64) ([]CustomFont, error) {
+	rows, err := db.Query(`SELECT id, name, filename FROM custom_fonts WHERE tenant_id = ? ORDER BY name`, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var fonts []CustomFont
+	for rows.Next() {
+		var f CustomFont
+		if err := rows.Scan(&f.ID, &f.Name, &f.Filename); err != nil {
+			return nil, err
+		}
+		fonts = append(fonts, f)
+	}
+	return fonts, rows.Err()
+}
+
+func AddCustomFont(db *sql.DB, tenantID int64, name, filename string) error {
+	_, err := db.Exec(`INSERT INTO custom_fonts (tenant_id, name, filename) VALUES (?, ?, ?)`, tenantID, name, filename)
+	return err
+}
+
+func DeleteCustomFont(db *sql.DB, tenantID, fontID int64) (string, error) {
+	var filename string
+	err := db.QueryRow(`SELECT filename FROM custom_fonts WHERE id = ? AND tenant_id = ?`, fontID, tenantID).Scan(&filename)
+	if err != nil {
+		return "", err
+	}
+	_, err = db.Exec(`DELETE FROM custom_fonts WHERE id = ? AND tenant_id = ?`, fontID, tenantID)
+	return filename, err
 }
 
 func UpdateTenantTheme(db *sql.DB, tenantID int64, theme string) error {

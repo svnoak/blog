@@ -110,6 +110,8 @@ func runServe(args []string) {
 		r.Post("/admin/users/{id}/delete", adminH.UserDelete)
 		r.Get("/admin/settings", adminH.SettingsGet)
 		r.Post("/admin/settings", adminH.SettingsPost)
+		r.Post("/admin/settings/fonts", adminH.FontUpload)
+		r.Post("/admin/settings/fonts/{id}/delete", adminH.FontDelete)
 	})
 
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)

@@ -28,6 +28,11 @@ func NewPublicHandler(db *sql.DB, tmpls *Templates) *PublicHandler {
 	return &PublicHandler{DB: db, Tmpls: tmpls, md: md}
 }
 
+func (h *PublicHandler) customFonts(tenantID int64) []middleware.CustomFont {
+	fonts, _ := middleware.ListCustomFonts(h.DB, tenantID)
+	return fonts
+}
+
 func (h *PublicHandler) Index(w http.ResponseWriter, r *http.Request) {
 	tenant := middleware.TenantFromCtx(r.Context())
 	posts, err := models.ListPublishedPosts(h.DB, tenant.ID)
@@ -36,8 +41,9 @@ func (h *PublicHandler) Index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.Tmpls.Render(w, "public/index.html", map[string]any{
-		"Tenant": tenant,
-		"Posts":  posts,
+		"Tenant":      tenant,
+		"Posts":       posts,
+		"CustomFonts": h.customFonts(tenant.ID),
 	})
 }
 
@@ -58,8 +64,9 @@ func (h *PublicHandler) ShowPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.Tmpls.Render(w, "public/post.html", map[string]any{
-		"Tenant":  tenant,
-		"Post":    post,
-		"Content": buf.String(),
+		"Tenant":      tenant,
+		"Post":        post,
+		"Content":     buf.String(),
+		"CustomFonts": h.customFonts(tenant.ID),
 	})
 }
