@@ -3,9 +3,9 @@
 
 (function () {
   // ── Page data (injected by Go template) ─────────────────────────────────────
-  const POST_ID       = window.EDITOR_POST_ID       || 0;
+  let POST_ID       = window.EDITOR_POST_ID       || 0;
   const IS_PUBLISHED  = window.EDITOR_IS_PUBLISHED  || false;
-  const FORM_ACTION   = window.EDITOR_FORM_ACTION   || '/admin/posts';
+  let FORM_ACTION   = window.EDITOR_FORM_ACTION   || '/admin/posts';
 
   // ── Elements ─────────────────────────────────────────────────────────────────
   const wysiwyg    = document.getElementById('wysiwyg');
@@ -222,28 +222,40 @@
   window.addEventListener('mousemove', bumpActivity);
   bumpActivity();
 
-  // ── Autosave (existing posts only) ────────────────────────────────────────────
+  // ── Autosave ──────────────────────────────────────────────────────────────────
   function scheduleAutosave() {
-    if (!POST_ID) return;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(doAutosave, 2000);
   }
 
   function doAutosave() {
+    const title   = titleInput.value;
     const content = currentMode === 'wysiwyg' ? htmlToMd(wysiwyg.innerHTML) : mdTextarea.value;
+    if (!POST_ID && !title.trim() && !content.trim()) return;
     const data = new FormData();
     data.append('content', content);
-    data.append('title',   titleInput.value);
+    data.append('title',   title);
     data.append('action',  'save');
     saveDot.classList.add('saving');
-    fetch(FORM_ACTION, { method: 'POST', body: data }).then(r => {
-      saveDot.classList.remove('saving');
-      if (r.ok || r.redirected) {
-        saveLabel.textContent = 'Saved';
-        clearTimeout(saveLabelTimer);
-        saveLabelTimer = setTimeout(() => { saveLabel.textContent = 'Draft'; }, 3000);
-      }
-    });
+    fetch(FORM_ACTION, { method: 'POST', body: data })
+      .then(r => {
+        saveDot.classList.remove('saving');
+        if (r.ok || r.redirected) {
+          if (!POST_ID && r.redirected) {
+            const match = r.url.match(/\/admin\/posts\/(\d+)\/edit/);
+            if (match) {
+              POST_ID         = parseInt(match[1], 10);
+              FORM_ACTION     = `/admin/posts/${POST_ID}`;
+              postForm.action = FORM_ACTION;
+              history.pushState({}, '', r.url);
+            }
+          }
+          saveLabel.textContent = 'Saved';
+          clearTimeout(saveLabelTimer);
+          saveLabelTimer = setTimeout(() => { saveLabel.textContent = 'Draft'; }, 3000);
+        }
+      })
+      .catch(() => saveDot.classList.remove('saving'));
   }
 
   // ── Form submission ────────────────────────────────────────────────────────────
