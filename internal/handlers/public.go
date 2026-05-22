@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -93,18 +94,47 @@ func plainExcerpt(htmlContent string, maxLen int) string {
 	return plain
 }
 
+const postsPerPage = 10
+
 func (h *PublicHandler) Index(w http.ResponseWriter, r *http.Request) {
 	tenant := middleware.TenantFromCtx(r.Context())
-	posts, err := models.ListPublishedPosts(h.DB, tenant.ID)
+
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+
+	total, err := models.CountPublishedPosts(h.DB, tenant.ID)
 	if err != nil {
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return
 	}
+
+	totalPages := (total + postsPerPage - 1) / postsPerPage
+	if totalPages < 1 {
+		totalPages = 1
+	}
+	if page > totalPages {
+		page = totalPages
+	}
+
+	posts, err := models.ListPublishedPostsPaged(h.DB, tenant.ID, (page-1)*postsPerPage, postsPerPage)
+	if err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
+
 	h.Tmpls.Render(w, "public/index.html", map[string]any{
 		"Tenant":      tenant,
 		"Posts":       posts,
 		"CustomFonts": h.customFonts(tenant.ID),
 		"BaseURL":     siteBaseURL(r),
+		"Page":        page,
+		"TotalPages":  totalPages,
+		"HasPrev":     page > 1,
+		"HasNext":     page < totalPages,
+		"PrevPage":    page - 1,
+		"NextPage":    page + 1,
 	})
 }
 

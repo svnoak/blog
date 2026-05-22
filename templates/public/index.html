@@ -38,6 +38,12 @@
       </li>
       {{end}}
     </ul>
+    {{if or .HasPrev .HasNext}}
+    <nav class="pagination">
+      {{if .HasPrev}}<a href="/?page={{.PrevPage}}" class="pagination-link">← Newer</a>{{end}}
+      {{if .HasNext}}<a href="/?page={{.NextPage}}" class="pagination-link">Older →</a>{{end}}
+    </nav>
+    {{end}}
     {{else}}
     <p class="empty-state">Nothing here yet.</p>
     {{end}}

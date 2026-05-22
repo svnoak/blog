@@ -198,6 +198,11 @@ body::before {
 .empty-state { color: var(--zen-ink-3); font-family: var(--zen-font-ui); font-size: 0.88rem; }
 .empty-state a { color: var(--zen-ink); text-decoration: underline; }
 
+/* ── Pagination ── */
+.pagination { display: flex; justify-content: space-between; padding: 2rem 0 1rem; }
+.pagination-link { font-family: var(--zen-font-ui); font-size: 0.88rem; color: var(--zen-ink-2); text-decoration: none; }
+.pagination-link:hover { color: var(--zen-ink); }
+
 /* ── Public theme switcher ── */
 .public-header {
   display: flex;
