@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"crypto/md5"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"io/fs"
 	"net/http"
@@ -15,7 +17,24 @@ type Templates struct {
 	t *template.Template
 }
 
+func staticHash(dir string) string {
+	h := md5.New()
+	filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		h.Write(b)
+		return nil
+	})
+	return fmt.Sprintf("%x", h.Sum(nil))[:8]
+}
+
 func LoadTemplates(dir string) (*Templates, error) {
+	assetVer := staticHash("static/js")
 	funcMap := template.FuncMap{
 		"formatDate": func(t *time.Time) string {
 			if t == nil {
@@ -33,6 +52,7 @@ func LoadTemplates(dir string) (*Templates, error) {
 			b, _ := json.Marshal(s)
 			return template.JS(b)
 		},
+		"assetVer": func() string { return assetVer },
 	}
 	t := template.New("").Funcs(funcMap)
 	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {

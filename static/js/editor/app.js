@@ -42,9 +42,10 @@
   let showToolbar   = true;
   let showStatusbar = true;
   let autoHide      = true;
-  let saveLabelTimer = null;
   let saveTimer      = null;
   let hideTimer      = null;
+  let lastSavedAt    = null;
+  let saveTickTimer  = null;
 
   // ── Expose mode getter for toolbar ──────────────────────────────────────────
   window._editorGetMode  = () => currentMode;
@@ -488,6 +489,24 @@
     saveTimer = setTimeout(doAutosave, 2000);
   }
 
+  function savedAgoText() {
+    if (!lastSavedAt) return 'Draft';
+    const secs = Math.floor((Date.now() - lastSavedAt) / 1000);
+    if (secs < 10)  return 'Saved just now';
+    if (secs < 60)  return `Saved ${secs}s ago`;
+    const mins = Math.floor(secs / 60);
+    if (mins < 60)  return `Saved ${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    return `Saved ${hrs}h ago`;
+  }
+
+  function startSaveTick() {
+    clearInterval(saveTickTimer);
+    saveTickTimer = setInterval(() => {
+      if (lastSavedAt) saveLabel.textContent = savedAgoText();
+    }, 15000);
+  }
+
   function doAutosave() {
     const title   = titleInput.value;
     const content = currentMode === 'wysiwyg' ? htmlToMd(wysiwyg.innerHTML) : mdTextarea.value;
@@ -497,6 +516,7 @@
     data.append('title',   title);
     data.append('action',  'save');
     saveDot.classList.add('saving');
+    saveLabel.textContent = 'Saving…';
     fetch(FORM_ACTION, { method: 'POST', body: data })
       .then(r => {
         saveDot.classList.remove('saving');
@@ -510,12 +530,15 @@
               history.pushState({}, '', r.url);
             }
           }
-          saveLabel.textContent = 'Saved';
-          clearTimeout(saveLabelTimer);
-          saveLabelTimer = setTimeout(() => { saveLabel.textContent = 'Draft'; }, 3000);
+          lastSavedAt = Date.now();
+          saveLabel.textContent = 'Saved just now';
+          startSaveTick();
         }
       })
-      .catch(() => saveDot.classList.remove('saving'));
+      .catch(() => {
+        saveDot.classList.remove('saving');
+        saveLabel.textContent = lastSavedAt ? savedAgoText() : 'Draft';
+      });
   }
 
   // ── Form submission ────────────────────────────────────────────────────────────

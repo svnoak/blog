@@ -178,10 +178,10 @@
     window.EDITOR_FORM_ACTION  = "{{if .Post}}/admin/posts/{{.Post.ID}}{{else}}/admin/posts{{end}}";
   </script>
 
-  <script src="/static/js/editor/md-utils.js"></script>
-  <script src="/static/js/editor/bubble.js"></script>
-  <script src="/static/js/editor/toolbar.js"></script>
-  <script src="/static/js/editor/app.js"></script>
+  <script src="/static/js/editor/md-utils.js?v={{assetVer}}"></script>
+  <script src="/static/js/editor/bubble.js?v={{assetVer}}"></script>
+  <script src="/static/js/editor/toolbar.js?v={{assetVer}}"></script>
+  <script src="/static/js/editor/app.js?v={{assetVer}}"></script>
 </body>
 </html>
 {{end}}
