@@ -109,6 +109,8 @@ func runServe(args []string) {
 		r.Get("/admin/users/new", adminH.UserNew)
 		r.Post("/admin/users", adminH.UserCreate)
 		r.Post("/admin/users/{id}/delete", adminH.UserDelete)
+		r.Get("/admin/account", adminH.AccountGet)
+		r.Post("/admin/account", adminH.AccountPost)
 		r.Get("/admin/settings", adminH.SettingsGet)
 		r.Post("/admin/settings", adminH.SettingsPost)
 		r.Post("/admin/settings/fonts", adminH.FontUpload)

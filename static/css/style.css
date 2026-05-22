@@ -353,6 +353,7 @@ body::before {
 .font-upload-form { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.75rem; }
 .font-file-input { font-size: 0.82rem; font-family: var(--zen-font-ui); color: var(--zen-ink-2); }
 .settings-error { font-size: 0.82rem; color: var(--danger); margin-top: 0.5rem; }
+.settings-success { font-size: 0.82rem; color: #3a7d44; margin-top: 0.5rem; }
 
 /* ── Admin layout ── */
 .admin-page { font-family: var(--zen-font-ui); }

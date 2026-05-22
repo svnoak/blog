@@ -88,3 +88,26 @@ func DeleteUser(db *sql.DB, tenantID, userID int64) error {
 	_, err := db.Exec(`DELETE FROM users WHERE id = ? AND tenant_id = ?`, userID, tenantID)
 	return err
 }
+
+func ChangePassword(db *sql.DB, tenantID, userID int64, currentPw, newPw string) error {
+	var hash string
+	err := db.QueryRow(
+		`SELECT password_hash FROM users WHERE id = ? AND tenant_id = ?`,
+		userID, tenantID,
+	).Scan(&hash)
+	if err != nil {
+		return fmt.Errorf("user not found")
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(currentPw)); err != nil {
+		return fmt.Errorf("wrong password")
+	}
+	newHash, err := bcrypt.GenerateFromPassword([]byte(newPw), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(
+		`UPDATE users SET password_hash = ? WHERE id = ? AND tenant_id = ?`,
+		string(newHash), userID, tenantID,
+	)
+	return err
+}

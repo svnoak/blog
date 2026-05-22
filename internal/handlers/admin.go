@@ -302,6 +302,52 @@ func (h *AdminHandler) UserCreate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin/users", http.StatusFound)
 }
 
+func (h *AdminHandler) AccountGet(w http.ResponseWriter, r *http.Request) {
+	tenant := middleware.TenantFromCtx(r.Context())
+	user, _ := h.currentUser(r)
+	h.Tmpls.Render(w, "admin/account.html", map[string]any{
+		"Tenant":      tenant,
+		"User":        user,
+		"CustomFonts": h.customFonts(tenant.ID),
+		"Error":       r.URL.Query().Get("error"),
+		"Success":     r.URL.Query().Get("success"),
+	})
+}
+
+func (h *AdminHandler) AccountPost(w http.ResponseWriter, r *http.Request) {
+	tenant := middleware.TenantFromCtx(r.Context())
+	user, err := h.currentUser(r)
+	if err != nil || user == nil {
+		http.Redirect(w, r, "/admin/login", http.StatusFound)
+		return
+	}
+	current := r.FormValue("current_password")
+	newPw := r.FormValue("new_password")
+	confirm := r.FormValue("confirm_password")
+
+	if current == "" || newPw == "" {
+		http.Redirect(w, r, "/admin/account?error=required", http.StatusFound)
+		return
+	}
+	if newPw != confirm {
+		http.Redirect(w, r, "/admin/account?error=mismatch", http.StatusFound)
+		return
+	}
+	if len(newPw) < 8 {
+		http.Redirect(w, r, "/admin/account?error=short", http.StatusFound)
+		return
+	}
+	if err := models.ChangePassword(h.DB, tenant.ID, user.ID, current, newPw); err != nil {
+		if err.Error() == "wrong password" {
+			http.Redirect(w, r, "/admin/account?error=wrong", http.StatusFound)
+			return
+		}
+		http.Error(w, "could not change password", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/admin/account?success=1", http.StatusFound)
+}
+
 func (h *AdminHandler) UserDelete(w http.ResponseWriter, r *http.Request) {
 	tenant := middleware.TenantFromCtx(r.Context())
 	self, _ := h.currentUser(r)
