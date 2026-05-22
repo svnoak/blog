@@ -84,10 +84,12 @@
   settingsPanel && settingsPanel.addEventListener('click', e => e.stopPropagation());
 
   // ── Theme ─────────────────────────────────────────────────────────────────────
+  const darkThemes = new Set(['midnight']);
   function setTheme(name) {
     if (name === 'paper') document.body.removeAttribute('data-theme');
     else document.body.setAttribute('data-theme', name);
     localStorage.setItem('bloggy-theme', name);
+    if (!darkThemes.has(name)) localStorage.setItem('bloggy-light-theme', name);
     settingsPanel && settingsPanel.querySelectorAll('.sp-swatch').forEach(s => {
       s.classList.toggle('is-active', s.dataset.theme === name);
     });
@@ -492,6 +494,12 @@
 
     if (e.key === '.') { e.preventDefault(); toggleFocusMode(); }
     if (e.key === '/' || e.key === '\\') { e.preventDefault(); toggleToolbar(); }
+    if (e.key.toLowerCase() === 'l' && e.shiftKey) {
+      e.preventDefault();
+      const current = localStorage.getItem('bloggy-theme') || 'paper';
+      if (darkThemes.has(current)) setTheme(localStorage.getItem('bloggy-light-theme') || 'paper');
+      else setTheme('midnight');
+    }
     if (e.key.toLowerCase() === 'm' && e.shiftKey) {
       e.preventDefault();
       setMode(currentMode === 'wysiwyg' ? 'markdown' : 'wysiwyg');
