@@ -15,6 +15,10 @@
 
     <form method="post" action="/admin/settings">
       <div class="settings-section">
+        <div class="settings-label">Blog name</div>
+        <input type="text" name="blog_name" value="{{.Tenant.Name}}" class="settings-input" maxlength="100" required>
+      </div>
+      <div class="settings-section">
         <div class="settings-label">Default public theme</div>
         <div class="settings-hint">Visitors can still change this from the site header.</div>
         <div class="theme-swatches">

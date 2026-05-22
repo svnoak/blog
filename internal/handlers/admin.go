@@ -154,6 +154,7 @@ func (h *AdminHandler) SettingsGet(w http.ResponseWriter, r *http.Request) {
 
 func (h *AdminHandler) SettingsPost(w http.ResponseWriter, r *http.Request) {
 	tenant := middleware.TenantFromCtx(r.Context())
+	middleware.UpdateTenantName(h.DB, tenant.ID, r.FormValue("blog_name"))
 	middleware.UpdateTenantTheme(h.DB, tenant.ID, r.FormValue("theme"))
 	http.Redirect(w, r, "/admin/settings", http.StatusFound)
 }

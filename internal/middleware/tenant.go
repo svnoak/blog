@@ -46,6 +46,14 @@ func getTenantByDomain(db *sql.DB, domain string) (*Tenant, error) {
 	return &t, err
 }
 
+func UpdateTenantName(db *sql.DB, tenantID int64, name string) error {
+	if name == "" {
+		return nil
+	}
+	_, err := db.Exec(`UPDATE tenants SET name = ? WHERE id = ?`, name, tenantID)
+	return err
+}
+
 func UpdateTenantTheme(db *sql.DB, tenantID int64, theme string) error {
 	valid := map[string]bool{"paper": true, "sepia": true, "mist": true, "midnight": true}
 	if !valid[theme] {
