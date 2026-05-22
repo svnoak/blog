@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{.Tenant.Name}}</title>
   <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="alternate" type="application/atom+xml" title="{{.Tenant.Name}}" href="/feed.xml">
   {{if .CustomFonts}}<style>{{range .CustomFonts}}
   @font-face{font-family:'{{.Name}}';src:url('/static/fonts/user/{{.Filename}}') format('woff2')}
   body[data-font="{{.Name}}"]{--zen-font:'{{.Name}}',Georgia,serif}{{end}}</style>{{end}}

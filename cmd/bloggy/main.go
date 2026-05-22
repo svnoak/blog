@@ -80,6 +80,7 @@ func runServe(args []string) {
 	// Public routes
 	r.Get("/", publicH.Index)
 	r.Get("/posts/{slug}", publicH.ShowPost)
+	r.Get("/feed.xml", publicH.Feed)
 
 	// First-run setup (no auth required)
 	r.Get("/admin/setup", setupH.SetupGet)

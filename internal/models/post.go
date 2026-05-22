@@ -153,6 +153,22 @@ func ListPublishedPosts(db *sql.DB, tenantID int64) ([]*Post, error) {
 	return scanPosts(rows)
 }
 
+func ListPublishedPostsN(db *sql.DB, tenantID int64, n int) ([]*Post, error) {
+	rows, err := db.Query(
+		`SELECT p.id, p.tenant_id, p.author_id, u.display_name, p.title, p.slug, p.content, p.status, p.published_at, p.created_at, p.updated_at
+		 FROM posts p JOIN users u ON u.id = p.author_id
+		 WHERE p.tenant_id = ? AND p.status = 'published'
+		 ORDER BY p.published_at DESC
+		 LIMIT ?`,
+		tenantID, n,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanPosts(rows)
+}
+
 func scanPost(row *sql.Row) (*Post, error) {
 	var p Post
 	var publishedAt sql.NullTime

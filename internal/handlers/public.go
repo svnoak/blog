@@ -3,7 +3,10 @@ package handlers
 import (
 	"bytes"
 	"database/sql"
+	"encoding/xml"
+	"fmt"
 	"net/http"
+	"time"
 
 	"bloggy/internal/middleware"
 	"bloggy/internal/models"
@@ -14,6 +17,40 @@ import (
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/renderer/html"
 )
+
+type atomFeed struct {
+	XMLName xml.Name    `xml:"feed"`
+	XMLNS   string      `xml:"xmlns,attr"`
+	Title   string      `xml:"title"`
+	Links   []atomLink  `xml:"link"`
+	ID      string      `xml:"id"`
+	Updated string      `xml:"updated"`
+	Entries []atomEntry `xml:"entry"`
+}
+
+type atomLink struct {
+	Href string `xml:"href,attr"`
+	Rel  string `xml:"rel,attr,omitempty"`
+}
+
+type atomEntry struct {
+	Title     string      `xml:"title"`
+	Links     []atomLink  `xml:"link"`
+	ID        string      `xml:"id"`
+	Published string      `xml:"published"`
+	Updated   string      `xml:"updated"`
+	Author    atomPerson  `xml:"author"`
+	Content   atomContent `xml:"content"`
+}
+
+type atomPerson struct {
+	Name string `xml:"name"`
+}
+
+type atomContent struct {
+	Type    string `xml:"type,attr"`
+	Content string `xml:",chardata"`
+}
 
 type PublicHandler struct {
 	DB    *sql.DB
@@ -33,6 +70,14 @@ func NewPublicHandler(db *sql.DB, tmpls *Templates, store sessions.Store) *Publi
 func (h *PublicHandler) customFonts(tenantID int64) []middleware.CustomFont {
 	fonts, _ := middleware.ListCustomFonts(h.DB, tenantID)
 	return fonts
+}
+
+func siteBaseURL(r *http.Request) string {
+	scheme := "https"
+	if r.TLS == nil && r.Header.Get("X-Forwarded-Proto") != "https" {
+		scheme = "http"
+	}
+	return fmt.Sprintf("%s://%s", scheme, r.Host)
 }
 
 func (h *PublicHandler) Index(w http.ResponseWriter, r *http.Request) {
@@ -79,4 +124,54 @@ func (h *PublicHandler) ShowPost(w http.ResponseWriter, r *http.Request) {
 		"CustomFonts": h.customFonts(tenant.ID),
 		"LoggedIn":    loggedIn,
 	})
+}
+
+func (h *PublicHandler) Feed(w http.ResponseWriter, r *http.Request) {
+	tenant := middleware.TenantFromCtx(r.Context())
+	posts, err := models.ListPublishedPostsN(h.DB, tenant.ID, 20)
+	if err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
+
+	base := siteBaseURL(r)
+
+	updated := time.Now().UTC().Format(time.RFC3339)
+	if len(posts) > 0 && posts[0].PublishedAt != nil {
+		updated = posts[0].PublishedAt.UTC().Format(time.RFC3339)
+	}
+
+	feed := atomFeed{
+		XMLNS:   "http://www.w3.org/2005/Atom",
+		Title:   tenant.Name,
+		Links:   []atomLink{{Href: base, Rel: "alternate"}, {Href: base + "/feed.xml", Rel: "self"}},
+		ID:      base + "/",
+		Updated: updated,
+	}
+
+	for _, p := range posts {
+		var buf bytes.Buffer
+		h.md.Convert([]byte(p.Content), &buf)
+
+		pubTime := p.CreatedAt.UTC().Format(time.RFC3339)
+		if p.PublishedAt != nil {
+			pubTime = p.PublishedAt.UTC().Format(time.RFC3339)
+		}
+
+		feed.Entries = append(feed.Entries, atomEntry{
+			Title:     p.Title,
+			Links:     []atomLink{{Href: base + "/posts/" + p.Slug}},
+			ID:        base + "/posts/" + p.Slug,
+			Published: pubTime,
+			Updated:   p.UpdatedAt.UTC().Format(time.RFC3339),
+			Author:    atomPerson{Name: p.AuthorName},
+			Content:   atomContent{Type: "html", Content: buf.String()},
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/atom+xml; charset=utf-8")
+	w.Write([]byte(xml.Header))
+	enc := xml.NewEncoder(w)
+	enc.Indent("", "  ")
+	enc.Encode(feed)
 }
