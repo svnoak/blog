@@ -72,14 +72,9 @@ func CreatePost(db *sql.DB, tenantID, authorID int64, title, content string) (*P
 }
 
 func UpdatePost(db *sql.DB, tenantID, postID int64, title, content string) error {
-	base := slugify(title)
-	slug, err := uniqueSlug(db, tenantID, base, postID)
-	if err != nil {
-		return err
-	}
-	_, err = db.Exec(
-		`UPDATE posts SET title = ?, slug = ?, content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND tenant_id = ?`,
-		title, slug, content, postID, tenantID,
+	_, err := db.Exec(
+		`UPDATE posts SET title = ?, content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND tenant_id = ?`,
+		title, content, postID, tenantID,
 	)
 	return err
 }
