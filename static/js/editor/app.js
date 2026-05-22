@@ -53,6 +53,7 @@
   // ── Init content ─────────────────────────────────────────────────────────────
   const initialMd = document.getElementById('initial-content').value;
   wysiwyg.innerHTML = mdToHtml(initialMd);
+  ensureHrParagraphs();
   mdTextarea.value  = initialMd;
   updateEmptyState();
   updateStats();
@@ -247,6 +248,7 @@
       mdTextarea.value = htmlToMd(wysiwyg.innerHTML);
     } else {
       wysiwyg.innerHTML = mdToHtml(mdTextarea.value);
+      ensureHrParagraphs();
       updateEmptyState();
     }
     currentMode = mode;
@@ -272,6 +274,16 @@
   // ── Empty state (wysiwyg placeholder) ────────────────────────────────────────
   function updateEmptyState() {
     wysiwyg.classList.toggle('is-empty', !wysiwyg.innerText.trim());
+  }
+
+  // ── HR helpers ───────────────────────────────────────────────────────────────
+  function ensureHrParagraphs() {
+    wysiwyg.querySelectorAll('hr').forEach(hr => {
+      if (!hr.nextElementSibling) {
+        const p = document.createElement('p'); p.innerHTML = '<br>';
+        hr.insertAdjacentElement('afterend', p);
+      }
+    });
   }
 
   // ── WYSIWYG events ────────────────────────────────────────────────────────────
@@ -394,6 +406,31 @@
           document.execCommand('formatBlock', false, 'P');
         }
       }, 0);
+    }
+  });
+
+  // Backspace/Delete: remove <hr> when cursor is adjacent to one
+  wysiwyg.addEventListener('keydown', e => {
+    if (e.key !== 'Backspace' && e.key !== 'Delete') return;
+    if (e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return;
+    const sel = window.getSelection();
+    if (!sel.rangeCount || !sel.getRangeAt(0).collapsed) return;
+    let blockEl = sel.anchorNode;
+    while (blockEl && blockEl.parentNode !== wysiwyg) blockEl = blockEl.parentNode;
+    if (!blockEl || blockEl === wysiwyg) return;
+    const range = sel.getRangeAt(0);
+    if (e.key === 'Backspace') {
+      const r = document.createRange();
+      try { r.selectNodeContents(blockEl); r.setEnd(range.startContainer, range.startOffset); } catch (_) { return; }
+      if (r.toString() !== '') return;
+      const prev = blockEl.previousElementSibling;
+      if (prev && prev.tagName === 'HR') { e.preventDefault(); prev.remove(); updateStats(); scheduleAutosave(); }
+    } else {
+      const r = document.createRange();
+      try { r.selectNodeContents(blockEl); r.setStart(range.startContainer, range.startOffset); } catch (_) { return; }
+      if (r.toString() !== '') return;
+      const next = blockEl.nextElementSibling;
+      if (next && next.tagName === 'HR') { e.preventDefault(); next.remove(); updateStats(); scheduleAutosave(); }
     }
   });
 
