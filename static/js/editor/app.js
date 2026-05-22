@@ -120,9 +120,9 @@
     }
   });
 
-  // Enter key: escape from headings, blockquotes, and code blocks
+  // Enter/ArrowDown key: escape from headings, blockquotes, and code blocks
   wysiwyg.addEventListener('keydown', e => {
-    if (e.key !== 'Enter' || e.shiftKey) return;
+    if ((e.key !== 'Enter' && e.key !== 'ArrowDown') || e.shiftKey) return;
     const sel = window.getSelection();
     if (!sel.rangeCount) return;
 
@@ -132,22 +132,53 @@
     if (!blockEl || blockEl === wysiwyg) return;
     const tag = blockEl.tagName ? blockEl.tagName.toUpperCase() : '';
 
-    // ── Escape from BLOCKQUOTE: Enter on an empty line exits to a new paragraph ──
+    // ── BLOCKQUOTE: Enter adds line within; Enter on empty line or ArrowDown on last line exits ──
     if (tag === 'BLOCKQUOTE') {
-      // Find the line element (direct child of blockquote) containing the cursor
       let lineEl = sel.anchorNode;
       if (lineEl.nodeType === Node.TEXT_NODE) lineEl = lineEl.parentNode;
       while (lineEl && lineEl !== blockEl && lineEl.parentNode !== blockEl) lineEl = lineEl.parentNode;
       const lineIsEmpty = !lineEl || lineEl === blockEl || !lineEl.textContent.trim();
-      if (lineIsEmpty) {
+      const isLastLine = !lineEl || lineEl === blockEl || !lineEl.nextElementSibling;
+
+      if (e.key === 'ArrowDown' && isLastLine) {
+        let nextEl = blockEl.nextElementSibling;
+        if (!nextEl) { nextEl = document.createElement('p'); nextEl.innerHTML = '<br>'; blockEl.insertAdjacentElement('afterend', nextEl); }
         e.preventDefault();
+        const r = document.createRange(); r.setStart(nextEl, 0); r.collapse(true);
+        sel.removeAllRanges(); sel.addRange(r);
+        return;
+      }
+
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+
+      if (lineIsEmpty) {
         if (lineEl && lineEl !== blockEl) blockEl.removeChild(lineEl);
         const p = document.createElement('p'); p.innerHTML = '<br>';
         blockEl.insertAdjacentElement('afterend', p);
         const r = document.createRange(); r.setStart(p, 0); r.collapse(true);
         sel.removeAllRanges(); sel.addRange(r);
+      } else {
+        // Split content at cursor into a new line within the blockquote
+        const range = sel.getRangeAt(0);
+        range.deleteContents();
+        const newLine = document.createElement(lineEl.tagName || 'P');
+        if (lineEl.lastChild) {
+          const afterRange = document.createRange();
+          afterRange.setStart(range.startContainer, range.startOffset);
+          afterRange.setEndAfter(lineEl.lastChild);
+          const frag = afterRange.extractContents();
+          newLine.appendChild(frag);
+          if (!newLine.textContent && !newLine.querySelector('br,img,hr')) newLine.innerHTML = '<br>';
+        } else {
+          newLine.innerHTML = '<br>';
+        }
+        if (!lineEl.textContent && !lineEl.querySelector('br,img,hr')) lineEl.innerHTML = '<br>';
+        lineEl.insertAdjacentElement('afterend', newLine);
+        const r = document.createRange(); r.setStart(newLine, 0); r.collapse(true);
+        sel.removeAllRanges(); sel.addRange(r);
       }
-      return; // let default Enter add lines within the blockquote otherwise
+      return;
     }
 
     // ── Escape from PRE/code block: Enter at the very end exits to a new paragraph ──
@@ -168,7 +199,7 @@
     }
 
     // ── Escape from headings: Enter creates empty heading → convert to paragraph ──
-    if (/^H[1-3]$/.test(tag) && blockEl.textContent) {
+    if (e.key === 'Enter' && /^H[1-3]$/.test(tag) && blockEl.textContent) {
       setTimeout(() => {
         let b = sel.anchorNode;
         while (b && b.parentNode !== wysiwyg) b = b.parentNode;
