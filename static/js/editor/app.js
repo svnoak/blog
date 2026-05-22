@@ -571,9 +571,9 @@
     if (localStorage.getItem('bloggy-focus') === '1') setFocusMode(true);
     if (localStorage.getItem('bloggy-typewriter') === '1') setTypewriter(true);
 
-    // Toolbar: default on
+    // Toolbar: default off
     const storedToolbar = localStorage.getItem('bloggy-toolbar');
-    setToolbar(storedToolbar !== '0');
+    setToolbar(storedToolbar === '1');
 
     // Status bar: default on
     const storedStatusbar = localStorage.getItem('bloggy-statusbar');
