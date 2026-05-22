@@ -81,6 +81,7 @@ func runServe(args []string) {
 	r.Get("/", publicH.Index)
 	r.Get("/posts/{slug}", publicH.ShowPost)
 	r.Get("/feed.xml", publicH.Feed)
+	r.Get("/sitemap.xml", publicH.Sitemap)
 
 	// First-run setup (no auth required)
 	r.Get("/admin/setup", setupH.SetupGet)

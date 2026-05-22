@@ -173,6 +173,27 @@ func (h *PublicHandler) ShowPost(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *PublicHandler) Sitemap(w http.ResponseWriter, r *http.Request) {
+	tenant := middleware.TenantFromCtx(r.Context())
+	posts, err := models.ListPublishedPosts(h.DB, tenant.ID)
+	if err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
+
+	base := siteBaseURL(r)
+
+	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
+	w.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?>` + "\n"))
+	w.Write([]byte(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` + "\n"))
+	fmt.Fprintf(w, "  <url><loc>%s/</loc></url>\n", base)
+	for _, p := range posts {
+		lastmod := p.UpdatedAt.UTC().Format("2006-01-02")
+		fmt.Fprintf(w, "  <url><loc>%s/posts/%s</loc><lastmod>%s</lastmod></url>\n", base, p.Slug, lastmod)
+	}
+	w.Write([]byte(`</urlset>` + "\n"))
+}
+
 func (h *PublicHandler) Feed(w http.ResponseWriter, r *http.Request) {
 	tenant := middleware.TenantFromCtx(r.Context())
 	posts, err := models.ListPublishedPostsN(h.DB, tenant.ID, 20)
