@@ -442,6 +442,7 @@ body::before {
 .btn-action:hover { border-color: var(--zen-ink-3); color: var(--zen-ink); }
 .btn-danger { color: var(--danger); border-color: rgba(181,52,31,0.25); }
 .btn-danger:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+.btn-view { display: inline-flex; align-items: center; padding: 0.2rem 0.45rem; text-decoration: none; }
 
 /* ── Post table (admin) ── */
 .post-table {

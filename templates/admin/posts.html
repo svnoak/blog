@@ -40,6 +40,9 @@
           </td>
           <td class="actions-cell">
             {{if .IsPublished}}
+              <a href="/posts/{{.Slug}}" target="_blank" class="btn-action btn-view" title="View post">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </a>
               <form method="post" action="/admin/posts/{{.ID}}/unpublish" style="display:inline">
                 <button type="submit" class="btn-action">Unpublish</button>
               </form>
