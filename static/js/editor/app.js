@@ -3,9 +3,8 @@
 
 (function () {
   // ── Page data (injected by Go template) ─────────────────────────────────────
-  let POST_ID       = window.EDITOR_POST_ID       || 0;
-  const IS_PUBLISHED  = window.EDITOR_IS_PUBLISHED  || false;
-  let FORM_ACTION   = window.EDITOR_FORM_ACTION   || '/admin/posts';
+  let POST_ID     = window.EDITOR_POST_ID    || 0;
+  let FORM_ACTION = window.EDITOR_FORM_ACTION || '/admin/posts';
 
   // ── Elements ─────────────────────────────────────────────────────────────────
   const wysiwyg    = document.getElementById('wysiwyg');
@@ -18,21 +17,38 @@
   const statChars  = document.getElementById('stat-chars');
   const statRead   = document.getElementById('stat-read');
   const toolbarRow = document.getElementById('toolbar-row');
-  const zenMenu    = document.getElementById('zen-menu');
-  const focusBtn   = document.getElementById('focus-btn');
-  const toolbarBtn = document.getElementById('toolbar-toggle-btn');
+  const statusbar  = document.getElementById('statusbar');
+  const zenColumn  = document.querySelector('.zen-column');
+
+  // Settings panel
+  const settingsBtn  = document.getElementById('settings-btn');
+  const settingsPanel = document.getElementById('settings-panel');
+  const spFocus      = document.getElementById('sp-focus');
+  const spTypewriter = document.getElementById('sp-typewriter');
+  const spToolbar    = document.getElementById('sp-toolbar');
+  const spStatusbar  = document.getElementById('sp-statusbar');
+  const spAutohide   = document.getElementById('sp-autohide');
+  const spColSlider  = document.getElementById('sp-col-slider');
+  const spColVal     = document.getElementById('sp-col-val');
+  const spFontSlider = document.getElementById('sp-font-slider');
+  const spFontVal    = document.getElementById('sp-font-val');
+  const spExport     = document.getElementById('sp-export');
+  const spClear      = document.getElementById('sp-clear');
 
   // ── State ────────────────────────────────────────────────────────────────────
-  let currentMode    = 'wysiwyg';
-  let focusMode      = false;
-  let showToolbar    = true;
+  let currentMode   = 'wysiwyg';
+  let focusMode     = false;
+  let typewriter    = false;
+  let showToolbar   = true;
+  let showStatusbar = true;
+  let autoHide      = true;
   let saveLabelTimer = null;
   let saveTimer      = null;
   let hideTimer      = null;
 
   // ── Expose mode getter for toolbar ──────────────────────────────────────────
-  window._editorGetMode   = () => currentMode;
-  window._editorOnChange  = () => { updateStats(); scheduleAutosave(); };
+  window._editorGetMode  = () => currentMode;
+  window._editorOnChange = () => { updateStats(); scheduleAutosave(); };
 
   // ── Init content ─────────────────────────────────────────────────────────────
   const initialMd = document.getElementById('initial-content').value;
@@ -41,14 +57,185 @@
   updateEmptyState();
   updateStats();
 
-  // ── Bubble ───────────────────────────────────────────────────────────────────
+  // ── Bubble & Toolbar ─────────────────────────────────────────────────────────
   initBubble(wysiwyg);
-
-  // ── Toolbar ──────────────────────────────────────────────────────────────────
   initToolbar(toolbarRow, {
     getMode:     () => currentMode,
     getEditorEl: () => wysiwyg,
     getMdEl:     () => mdTextarea,
+  });
+
+  // ── Settings panel ────────────────────────────────────────────────────────────
+  function openSettings() {
+    settingsPanel.style.display = 'block';
+    bumpActivity();
+  }
+  function closeSettings() {
+    settingsPanel.style.display = 'none';
+  }
+
+  settingsBtn && settingsBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    settingsPanel.style.display === 'block' ? closeSettings() : openSettings();
+  });
+  document.addEventListener('click', () => {
+    if (settingsPanel && settingsPanel.style.display === 'block') closeSettings();
+  });
+  settingsPanel && settingsPanel.addEventListener('click', e => e.stopPropagation());
+
+  // ── Theme ─────────────────────────────────────────────────────────────────────
+  function setTheme(name) {
+    if (name === 'paper') document.body.removeAttribute('data-theme');
+    else document.body.setAttribute('data-theme', name);
+    localStorage.setItem('bloggy-theme', name);
+    settingsPanel && settingsPanel.querySelectorAll('.sp-swatch').forEach(s => {
+      s.classList.toggle('is-active', s.dataset.theme === name);
+    });
+  }
+  window.setTheme = setTheme;
+
+  settingsPanel && settingsPanel.querySelectorAll('.sp-swatch').forEach(s => {
+    s.addEventListener('click', () => setTheme(s.dataset.theme));
+  });
+
+  // ── Focus mode ────────────────────────────────────────────────────────────────
+  function setFocusMode(on) {
+    focusMode = on;
+    document.body.classList.toggle('focus-mode', on);
+    spFocus && spFocus.setAttribute('aria-pressed', String(on));
+    localStorage.setItem('bloggy-focus', on ? '1' : '0');
+  }
+  function toggleFocusMode() { setFocusMode(!focusMode); }
+
+  spFocus && spFocus.addEventListener('click', toggleFocusMode);
+
+  // ── Typewriter scroll ─────────────────────────────────────────────────────────
+  function setTypewriter(on) {
+    typewriter = on;
+    spTypewriter && spTypewriter.setAttribute('aria-pressed', String(on));
+    localStorage.setItem('bloggy-typewriter', on ? '1' : '0');
+  }
+  spTypewriter && spTypewriter.addEventListener('click', () => setTypewriter(!typewriter));
+
+  function doTypewriterScroll() {
+    if (!typewriter) return;
+    if (currentMode === 'wysiwyg') {
+      const sel = window.getSelection();
+      if (!sel || !sel.rangeCount) return;
+      const r = sel.getRangeAt(0).cloneRange();
+      r.collapse(true);
+      const rect = r.getBoundingClientRect();
+      if (!rect || (!rect.height && !rect.width)) return;
+      const diff = rect.top - window.innerHeight * 0.45;
+      if (Math.abs(diff) < 8) return;
+      window.scrollBy({ top: diff, behavior: 'smooth' });
+    } else {
+      const ta = mdTextarea;
+      const lh = parseFloat(getComputedStyle(ta).lineHeight) || 24;
+      const lines = ta.value.substring(0, ta.selectionStart).split('\n').length - 1;
+      const taRect = ta.getBoundingClientRect();
+      const curTop = taRect.top + lines * lh - (ta.scrollTop || 0);
+      const diff = curTop - window.innerHeight * 0.45;
+      if (Math.abs(diff) < 8) return;
+      window.scrollBy({ top: diff, behavior: 'smooth' });
+    }
+  }
+
+  // ── Toolbar toggle ────────────────────────────────────────────────────────────
+  function setToolbar(on) {
+    showToolbar = on;
+    toolbarRow.style.display = on ? '' : 'none';
+    spToolbar && spToolbar.setAttribute('aria-pressed', String(on));
+    document.body.style.setProperty('--zen-page-top', on ? '148px' : '100px');
+    localStorage.setItem('bloggy-toolbar', on ? '1' : '0');
+  }
+  function toggleToolbar() { setToolbar(!showToolbar); }
+  spToolbar && spToolbar.addEventListener('click', toggleToolbar);
+
+  // ── Status bar toggle ─────────────────────────────────────────────────────────
+  function setStatusbar(on) {
+    showStatusbar = on;
+    statusbar && (statusbar.style.display = on ? '' : 'none');
+    spStatusbar && spStatusbar.setAttribute('aria-pressed', String(on));
+    localStorage.setItem('bloggy-statusbar', on ? '1' : '0');
+  }
+  spStatusbar && spStatusbar.addEventListener('click', () => setStatusbar(!showStatusbar));
+
+  // ── Auto-hide chrome ──────────────────────────────────────────────────────────
+  function setAutoHide(on) {
+    autoHide = on;
+    spAutohide && spAutohide.setAttribute('aria-pressed', String(on));
+    localStorage.setItem('bloggy-autohide', on ? '1' : '0');
+    if (!on) {
+      clearTimeout(hideTimer);
+      document.body.classList.remove('chrome-hidden');
+    } else {
+      bumpActivity();
+    }
+  }
+  spAutohide && spAutohide.addEventListener('click', () => setAutoHide(!autoHide));
+
+  function bumpActivity() {
+    document.body.classList.remove('chrome-hidden');
+    clearTimeout(hideTimer);
+    if (autoHide) {
+      hideTimer = setTimeout(() => document.body.classList.add('chrome-hidden'), 2400);
+    }
+  }
+  window.addEventListener('mousemove', bumpActivity);
+  bumpActivity();
+
+  // ── Column width slider ───────────────────────────────────────────────────────
+  function applyColWidth(val) {
+    zenColumn && (zenColumn.style.maxWidth = val + 'px');
+    spColVal && (spColVal.textContent = val + 'px');
+    spColSlider && (spColSlider.value = String(val));
+  }
+  spColSlider && spColSlider.addEventListener('input', () => {
+    const val = parseInt(spColSlider.value, 10);
+    applyColWidth(val);
+    localStorage.setItem('bloggy-col-width', val);
+  });
+
+  // ── Font size slider ──────────────────────────────────────────────────────────
+  function applyFontSize(val) {
+    wysiwyg.style.fontSize = val + 'px';
+    mdTextarea.style.fontSize = val + 'px';
+    spFontVal && (spFontVal.textContent = val + 'px');
+    spFontSlider && (spFontSlider.value = String(val));
+  }
+  spFontSlider && spFontSlider.addEventListener('input', () => {
+    const val = parseInt(spFontSlider.value, 10);
+    applyFontSize(val);
+    localStorage.setItem('bloggy-font-size', val);
+  });
+
+  // ── Export as Markdown ────────────────────────────────────────────────────────
+  spExport && spExport.addEventListener('click', () => {
+    const title   = titleInput.value || 'untitled';
+    const content = currentMode === 'wysiwyg' ? htmlToMd(wysiwyg.innerHTML) : mdTextarea.value;
+    const full    = title ? '# ' + title + '\n\n' + content : content;
+    const blob    = new Blob([full], { type: 'text/markdown' });
+    const url     = URL.createObjectURL(blob);
+    const a       = document.createElement('a');
+    a.href     = url;
+    a.download = title.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() + '.md';
+    a.click();
+    URL.revokeObjectURL(url);
+    closeSettings();
+  });
+
+  // ── Clear page ────────────────────────────────────────────────────────────────
+  spClear && spClear.addEventListener('click', () => {
+    if (!confirm('Clear all content? This cannot be undone.')) return;
+    wysiwyg.innerHTML = '';
+    mdTextarea.value  = '';
+    titleInput.value  = '';
+    document.title    = 'New post';
+    updateEmptyState();
+    updateStats();
+    scheduleAutosave();
+    closeSettings();
   });
 
   // ── Mode switching ────────────────────────────────────────────────────────────
@@ -68,7 +255,6 @@
     updateStats();
     bumpActivity();
   }
-
   window.setMode = setMode;
 
   // ── Stats ─────────────────────────────────────────────────────────────────────
@@ -91,6 +277,7 @@
     updateEmptyState();
     updateStats();
     scheduleAutosave();
+    doTypewriterScroll();
   });
 
   // Markdown shortcuts: `# `, `> `, `- `, `1. ` on space
@@ -126,19 +313,18 @@
     const sel = window.getSelection();
     if (!sel.rangeCount) return;
 
-    // Find the direct child of wysiwyg that contains the cursor
     let blockEl = sel.anchorNode;
     while (blockEl && blockEl.parentNode !== wysiwyg) blockEl = blockEl.parentNode;
     if (!blockEl || blockEl === wysiwyg) return;
     const tag = blockEl.tagName ? blockEl.tagName.toUpperCase() : '';
 
-    // ── BLOCKQUOTE: Enter adds line within; Enter on empty line or ArrowDown on last line exits ──
+    // BLOCKQUOTE: Enter adds line within; Enter on empty line or ArrowDown on last line exits
     if (tag === 'BLOCKQUOTE') {
       let lineEl = sel.anchorNode;
       if (lineEl.nodeType === Node.TEXT_NODE) lineEl = lineEl.parentNode;
       while (lineEl && lineEl !== blockEl && lineEl.parentNode !== blockEl) lineEl = lineEl.parentNode;
       const lineIsEmpty = !lineEl || lineEl === blockEl || !lineEl.textContent.trim();
-      const isLastLine = !lineEl || lineEl === blockEl || !lineEl.nextElementSibling;
+      const isLastLine  = !lineEl || lineEl === blockEl || !lineEl.nextElementSibling;
 
       if (e.key === 'ArrowDown' && isLastLine) {
         let nextEl = blockEl.nextElementSibling;
@@ -159,7 +345,6 @@
         const r = document.createRange(); r.setStart(p, 0); r.collapse(true);
         sel.removeAllRanges(); sel.addRange(r);
       } else {
-        // Split content at cursor into a new line within the blockquote
         const range = sel.getRangeAt(0);
         range.deleteContents();
         const newLine = document.createElement(lineEl.tagName || 'P');
@@ -181,7 +366,7 @@
       return;
     }
 
-    // ── Escape from PRE/code block: Enter at the very end exits to a new paragraph ──
+    // PRE/code block: Enter at the very end exits to a new paragraph
     if (tag === 'PRE') {
       const curRange = sel.getRangeAt(0);
       const afterRange = document.createRange();
@@ -195,10 +380,10 @@
         const r = document.createRange(); r.setStart(p, 0); r.collapse(true);
         sel.removeAllRanges(); sel.addRange(r);
       }
-      return; // let default Enter add newlines within pre otherwise
+      return;
     }
 
-    // ── Escape from headings: Enter creates empty heading → convert to paragraph ──
+    // Headings: Enter creates empty heading → convert to paragraph
     if (e.key === 'Enter' && /^H[1-3]$/.test(tag) && blockEl.textContent) {
       setTimeout(() => {
         let b = sel.anchorNode;
@@ -228,7 +413,11 @@
   });
 
   // ── Markdown editor events ────────────────────────────────────────────────────
-  mdTextarea.addEventListener('input', () => { updateStats(); scheduleAutosave(); });
+  mdTextarea.addEventListener('input', () => {
+    updateStats();
+    scheduleAutosave();
+    doTypewriterScroll();
+  });
   mdTextarea.addEventListener('keydown', e => {
     if (e.key !== 'Tab') return;
     e.preventDefault();
@@ -251,16 +440,6 @@
   titleInput.addEventListener('blur', () => {
     titleInput.classList.remove('is-focused');
   });
-
-  // ── Chrome auto-hide ──────────────────────────────────────────────────────────
-  function bumpActivity() {
-    document.body.classList.remove('chrome-hidden');
-    clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => document.body.classList.add('chrome-hidden'), 2400);
-  }
-
-  window.addEventListener('mousemove', bumpActivity);
-  bumpActivity();
 
   // ── Autosave ──────────────────────────────────────────────────────────────────
   function scheduleAutosave() {
@@ -306,66 +485,11 @@
     postForm.submit();
   };
 
-  // ── Focus mode ────────────────────────────────────────────────────────────────
-  function toggleFocusMode() {
-    focusMode = !focusMode;
-    document.body.classList.toggle('focus-mode', focusMode);
-    focusBtn && focusBtn.classList.toggle('is-active', focusMode);
-  }
-
-  focusBtn && focusBtn.addEventListener('click', toggleFocusMode);
-
-  // ── Toolbar toggle ────────────────────────────────────────────────────────────
-  function toggleToolbar() {
-    showToolbar = !showToolbar;
-    toolbarRow.style.display = showToolbar ? '' : 'none';
-    toolbarBtn && toolbarBtn.classList.toggle('is-active', showToolbar);
-    document.body.style.setProperty('--zen-page-top', showToolbar ? '148px' : '100px');
-  }
-
-  toolbarBtn && toolbarBtn.addEventListener('click', toggleToolbar);
-
-  // ── Theme menu ────────────────────────────────────────────────────────────────
-  const themeBtn = document.getElementById('theme-btn');
-
-  function setTheme(name) {
-    if (name === 'paper') document.body.removeAttribute('data-theme');
-    else document.body.setAttribute('data-theme', name);
-    localStorage.setItem('bloggy-theme', name);
-    zenMenu && zenMenu.querySelectorAll('.zen-swatch').forEach(s => {
-      s.classList.toggle('is-active', s.dataset.theme === name);
-    });
-    closeMenu();
-  }
-  window.setTheme = setTheme;
-
-  function openMenu() {
-    if (!zenMenu) return;
-    zenMenu.style.display = 'block';
-    bumpActivity();
-  }
-
-  function closeMenu() {
-    if (!zenMenu) return;
-    zenMenu.style.display = 'none';
-  }
-
-  themeBtn && themeBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    zenMenu && zenMenu.style.display === 'block' ? closeMenu() : openMenu();
-  });
-
-  document.addEventListener('click', closeMenu);
-  zenMenu && zenMenu.addEventListener('click', e => e.stopPropagation());
-
-  setTheme(localStorage.getItem('bloggy-theme') || 'paper');
-
   // ── Keyboard shortcuts ────────────────────────────────────────────────────────
   document.addEventListener('keydown', e => {
     const mod = e.metaKey || e.ctrlKey;
     if (!mod) return;
 
-    // Chrome shortcuts (work anywhere on the page)
     if (e.key === '.') { e.preventDefault(); toggleFocusMode(); }
     if (e.key === '/' || e.key === '\\') { e.preventDefault(); toggleToolbar(); }
     if (e.key.toLowerCase() === 'm' && e.shiftKey) {
@@ -373,7 +497,6 @@
       setMode(currentMode === 'wysiwyg' ? 'markdown' : 'wysiwyg');
     }
 
-    // Formatting shortcuts — only when cursor is in the editor
     const inEditor = document.activeElement === wysiwyg || document.activeElement === mdTextarea;
     if (!inEditor) return;
 
@@ -396,6 +519,33 @@
     }
   });
 
-  // ── Initial page-top padding ───────────────────────────────────────────────
-  document.body.style.setProperty('--zen-page-top', '148px');
+  // ── Init settings from localStorage ──────────────────────────────────────────
+  (function initSettings() {
+    setTheme(localStorage.getItem('bloggy-theme') || 'paper');
+
+    if (localStorage.getItem('bloggy-focus') === '1') setFocusMode(true);
+    if (localStorage.getItem('bloggy-typewriter') === '1') setTypewriter(true);
+
+    // Toolbar: default on
+    const storedToolbar = localStorage.getItem('bloggy-toolbar');
+    setToolbar(storedToolbar !== '0');
+
+    // Status bar: default on
+    const storedStatusbar = localStorage.getItem('bloggy-statusbar');
+    if (storedStatusbar === '0') setStatusbar(false);
+
+    // Auto-hide: default on
+    const storedAutohide = localStorage.getItem('bloggy-autohide');
+    if (storedAutohide === '0') setAutoHide(false);
+
+    // Column width
+    const storedColWidth = localStorage.getItem('bloggy-col-width');
+    if (storedColWidth) applyColWidth(parseInt(storedColWidth, 10));
+
+    // Font size
+    const storedFontSize = localStorage.getItem('bloggy-font-size');
+    if (storedFontSize) {
+      applyFontSize(parseInt(storedFontSize, 10));
+    }
+  })();
 })();

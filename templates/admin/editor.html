@@ -28,18 +28,6 @@
       <div class="zen-topbar-right">
         <span id="save-status" class="save-status"></span>
 
-        <button type="button" id="toolbar-toggle-btn" class="zen-icon-btn is-active" title="Toggle toolbar (⌘/)">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 5h10M3 8h10M3 11h6"/></svg>
-        </button>
-
-        <button type="button" id="focus-btn" class="zen-icon-btn" title="Focus mode (⌘.)">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 5V3h2M14 5V3h-2M2 11v2h2M14 11v2h-2"/><circle cx="8" cy="8" r="2.2"/></svg>
-        </button>
-
-        <button type="button" id="theme-btn" class="zen-icon-btn" title="Theme">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11M2.5 8h11" opacity=".35"/><path d="M8 2.5A5.5 5.5 0 0 1 8 13.5z" fill="currentColor" stroke="none"/></svg>
-        </button>
-
         {{if .Post}}
           {{if .Post.IsPublished}}
             <button type="button" class="zen-btn-secondary" onclick="submitPost('unpublish')">Unpublish</button>
@@ -49,6 +37,14 @@
         {{else}}
           <button type="button" class="zen-btn-primary" onclick="submitPost('publish')">Publish</button>
         {{end}}
+
+        <button type="button" id="settings-btn" class="zen-icon-btn" title="Settings">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <line x1="3" y1="4" x2="13" y2="4"/>
+            <line x1="3" y1="8" x2="13" y2="8"/>
+            <line x1="3" y1="12" x2="13" y2="12"/>
+          </svg>
+        </button>
       </div>
 
     </div>
@@ -57,23 +53,64 @@
     <div id="toolbar-row"></div>
   </header>
 
+  <!-- Settings panel -->
+  <div id="settings-panel">
+    <div class="sp-label">Theme</div>
+    <div class="sp-swatches">
+      <button class="sp-swatch" data-theme="paper"    style="background:#F6F1E7" title="Paper"></button>
+      <button class="sp-swatch" data-theme="sepia"    style="background:#EFE2C8" title="Sepia"></button>
+      <button class="sp-swatch" data-theme="mist"     style="background:#F1F2EF" title="Mist"></button>
+      <button class="sp-swatch" data-theme="midnight" style="background:#14130F" title="Midnight"></button>
+    </div>
+
+    <div class="sp-sep"></div>
+
+    <div class="sp-row">
+      <span class="sp-row-label">Focus mode <kbd>⌘.</kbd></span>
+      <button class="sp-toggle" id="sp-focus" aria-pressed="false"><span></span></button>
+    </div>
+    <div class="sp-row">
+      <span class="sp-row-label">Typewriter scroll</span>
+      <button class="sp-toggle" id="sp-typewriter" aria-pressed="false"><span></span></button>
+    </div>
+
+    <div class="sp-sep"></div>
+
+    <div class="sp-row">
+      <span class="sp-row-label">Toolbar <kbd>⌘/</kbd></span>
+      <button class="sp-toggle" id="sp-toolbar" aria-pressed="true"><span></span></button>
+    </div>
+    <div class="sp-row">
+      <span class="sp-row-label">Status bar</span>
+      <button class="sp-toggle" id="sp-statusbar" aria-pressed="true"><span></span></button>
+    </div>
+    <div class="sp-row">
+      <span class="sp-row-label">Auto-hide chrome</span>
+      <button class="sp-toggle" id="sp-autohide" aria-pressed="true"><span></span></button>
+    </div>
+
+    <div class="sp-sep"></div>
+
+    <div class="sp-slider-label">
+      <span>Column width</span>
+      <span class="sp-slider-num" id="sp-col-val">720px</span>
+    </div>
+    <input type="range" class="sp-slider" id="sp-col-slider" min="480" max="900" step="20" value="720">
+
+    <div class="sp-slider-label">
+      <span>Font size</span>
+      <span class="sp-slider-num" id="sp-font-val">18px</span>
+    </div>
+    <input type="range" class="sp-slider" id="sp-font-slider" min="14" max="24" step="1" value="18">
+
+    <div class="sp-sep"></div>
+
+    <button class="sp-action" id="sp-export">Export as Markdown</button>
+    <button class="sp-action sp-action-danger" id="sp-clear">Clear page</button>
+  </div>
+
   <!-- Selection bubble (populated by bubble.js) -->
   <div id="zen-bubble"></div>
-
-  <!-- Theme / overflow menu -->
-  <div id="zen-menu">
-    <div class="zen-menu-section">Theme</div>
-    <div class="zen-menu-swatches">
-      <div class="zen-swatch" data-theme="paper"    style="background:#F6F1E7" onclick="setTheme('paper')"    title="Paper"><span class="ring"></span></div>
-      <div class="zen-swatch" data-theme="sepia"    style="background:#EFE2C8" onclick="setTheme('sepia')"    title="Sepia"><span class="ring"></span></div>
-      <div class="zen-swatch" data-theme="mist"     style="background:#F1F2EF" onclick="setTheme('mist')"     title="Mist"><span class="ring"></span></div>
-      <div class="zen-swatch" data-theme="midnight" style="background:#14130F;border-color:rgba(255,255,255,0.15)" onclick="setTheme('midnight')" title="Midnight"><span class="ring"></span></div>
-    </div>
-    <div class="zen-menu-sep"></div>
-    <button type="button" class="zen-menu-item" onclick="document.getElementById('focus-btn').click();document.getElementById('zen-menu').style.display='none'">
-      Focus mode <span>⌘.</span>
-    </button>
-  </div>
 
   <!-- Status bar -->
   <div id="statusbar" class="statusbar chrome">
@@ -144,4 +181,3 @@
 </body>
 </html>
 {{end}}
-
