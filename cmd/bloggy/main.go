@@ -80,6 +80,7 @@ func runServe(args []string) {
 	// Public routes
 	r.Get("/", publicH.Index)
 	r.Get("/posts/{slug}", publicH.ShowPost)
+	r.Get("/tags/{slug}", publicH.TagIndex)
 	r.Get("/feed.xml", publicH.Feed)
 	r.Get("/sitemap.xml", publicH.Sitemap)
 

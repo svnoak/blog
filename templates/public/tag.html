@@ -1,14 +1,10 @@
-{{define "public/index.html"}}<!DOCTYPE html>
+{{define "public/tag.html"}}<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{.Tenant.Name}}</title>
+  <title>{{.Tag.Name}} — {{.Tenant.Name}}</title>
   <link rel="stylesheet" href="/static/css/style.css">
-  <link rel="alternate" type="application/atom+xml" title="{{.Tenant.Name}}" href="/feed.xml">
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="{{.Tenant.Name}}">
-  <meta property="og:url" content="{{.BaseURL}}">
   {{if .CustomFonts}}<style>{{range .CustomFonts}}
   @font-face{font-family:'{{.Name}}';src:url('/static/fonts/user/{{.Filename}}') format('woff2')}
   body[data-font="{{.Name}}"]{--zen-font:'{{.Name}}',Georgia,serif}{{end}}</style>{{end}}
@@ -22,6 +18,10 @@
     </button>
   </header>
   <main class="public-main">
+    <div class="tag-page-heading">
+      <a href="/" class="tag-page-back">← All posts</a>
+      <span class="tag-chip tag-chip-heading">{{.Tag.Name}}</span>
+    </div>
     {{if .Posts}}
     <ul class="post-list">
       {{range .Posts}}
@@ -36,12 +36,12 @@
     </ul>
     {{if or .HasPrev .HasNext}}
     <nav class="pagination">
-      {{if .HasPrev}}<a href="/?page={{.PrevPage}}" class="pagination-link">← Newer</a>{{end}}
-      {{if .HasNext}}<a href="/?page={{.NextPage}}" class="pagination-link">Older →</a>{{end}}
+      {{if .HasPrev}}<a href="/tags/{{.Tag.Slug}}?page={{.PrevPage}}" class="pagination-link">← Newer</a>{{end}}
+      {{if .HasNext}}<a href="/tags/{{.Tag.Slug}}?page={{.NextPage}}" class="pagination-link">Older →</a>{{end}}
     </nav>
     {{end}}
     {{else}}
-    <p class="empty-state">Nothing here yet.</p>
+    <p class="empty-state">No posts here yet.</p>
     {{end}}
   </main>
   <script>

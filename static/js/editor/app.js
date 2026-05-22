@@ -34,6 +34,7 @@
   const spFontVal    = document.getElementById('sp-font-val');
   const spExport     = document.getElementById('sp-export');
   const spClear      = document.getElementById('sp-clear');
+  const spTags       = document.getElementById('sp-tags');
 
   // ── State ────────────────────────────────────────────────────────────────────
   let currentMode   = 'wysiwyg';
@@ -514,6 +515,7 @@
     const data = new FormData();
     data.append('content', content);
     data.append('title',   title);
+    data.append('tags',    spTags ? spTags.value : '');
     data.append('action',  'save');
     saveDot.classList.add('saving');
     saveLabel.textContent = 'Saving…';
@@ -546,6 +548,7 @@
     const content = currentMode === 'wysiwyg' ? htmlToMd(wysiwyg.innerHTML) : mdTextarea.value;
     document.getElementById('content-input').value = content;
     document.getElementById('action-input').value  = action;
+    document.getElementById('tags-input').value    = spTags ? spTags.value : '';
     postForm.submit();
   };
 
@@ -617,5 +620,8 @@
     if (storedFontSize) {
       applyFontSize(parseInt(storedFontSize, 10));
     }
+
+    // Tags
+    if (spTags && window.EDITOR_TAGS) spTags.value = window.EDITOR_TAGS;
   })();
 })();

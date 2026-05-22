@@ -83,6 +83,7 @@ func (h *AdminHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not create post", http.StatusInternalServerError)
 		return
 	}
+	models.SetPostTags(h.DB, tenant.ID, post.ID, r.FormValue("tags"))
 	if r.FormValue("action") == "publish" {
 		models.PublishPost(h.DB, tenant.ID, post.ID)
 		http.Redirect(w, r, "/admin/posts", http.StatusFound)
@@ -105,6 +106,7 @@ func (h *AdminHandler) EditPost(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	models.LoadTagsForPosts(h.DB, []*models.Post{post})
 	h.Tmpls.Render(w, "admin/editor.html", map[string]any{
 		"Tenant":      tenant,
 		"User":        user,
@@ -126,6 +128,7 @@ func (h *AdminHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not update post", http.StatusInternalServerError)
 		return
 	}
+	models.SetPostTags(h.DB, tenant.ID, id, r.FormValue("tags"))
 	if r.FormValue("action") == "publish" {
 		models.PublishPost(h.DB, tenant.ID, id)
 	} else if r.FormValue("action") == "unpublish" {

@@ -30,6 +30,7 @@
     <article>
       <h1 class="post-title">{{.Post.Title}}</h1>
       <div class="post-meta">Written by {{.Post.AuthorName}} on {{formatDate .Post.PublishedAt}}</div>
+      {{if .Post.Tags}}<div class="post-tags">{{range .Post.Tags}}<a href="/tags/{{.Slug}}" class="tag-chip">{{.Name}}</a>{{end}}</div>{{end}}
       <div class="post-content">{{safeHTML .Content}}</div>
     </article>
   </main>

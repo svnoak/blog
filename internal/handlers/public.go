@@ -123,6 +123,7 @@ func (h *PublicHandler) Index(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return
 	}
+	models.LoadTagsForPosts(h.DB, posts)
 
 	h.Tmpls.Render(w, "public/index.html", map[string]any{
 		"Tenant":      tenant,
@@ -161,6 +162,7 @@ func (h *PublicHandler) ShowPost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	models.LoadTagsForPosts(h.DB, []*models.Post{post})
 	base := siteBaseURL(r)
 	h.Tmpls.Render(w, "public/post.html", map[string]any{
 		"Tenant":      tenant,
@@ -242,4 +244,55 @@ func (h *PublicHandler) Feed(w http.ResponseWriter, r *http.Request) {
 	enc := xml.NewEncoder(w)
 	enc.Indent("", "  ")
 	enc.Encode(feed)
+}
+
+func (h *PublicHandler) TagIndex(w http.ResponseWriter, r *http.Request) {
+	tenant := middleware.TenantFromCtx(r.Context())
+	tagSlug := chi.URLParam(r, "slug")
+
+	tag, err := models.GetTagBySlug(h.DB, tenant.ID, tagSlug)
+	if err != nil || tag == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+
+	total, err := models.CountPublishedPostsByTag(h.DB, tenant.ID, tagSlug)
+	if err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
+
+	totalPages := (total + postsPerPage - 1) / postsPerPage
+	if totalPages < 1 {
+		totalPages = 1
+	}
+	if page > totalPages {
+		page = totalPages
+	}
+
+	posts, err := models.ListPublishedPostsByTagPaged(h.DB, tenant.ID, tagSlug, (page-1)*postsPerPage, postsPerPage)
+	if err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
+	models.LoadTagsForPosts(h.DB, posts)
+
+	h.Tmpls.Render(w, "public/tag.html", map[string]any{
+		"Tenant":      tenant,
+		"Tag":         tag,
+		"Posts":       posts,
+		"CustomFonts": h.customFonts(tenant.ID),
+		"BaseURL":     siteBaseURL(r),
+		"Page":        page,
+		"TotalPages":  totalPages,
+		"HasPrev":     page > 1,
+		"HasNext":     page < totalPages,
+		"PrevPage":    page - 1,
+		"NextPage":    page + 1,
+	})
 }

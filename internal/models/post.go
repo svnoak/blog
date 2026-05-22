@@ -20,9 +20,18 @@ type Post struct {
 	PublishedAt *time.Time
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+	Tags        []Tag
 }
 
 func (p *Post) IsPublished() bool { return p.Status == "published" }
+
+func (p *Post) TagsCSV() string {
+	names := make([]string, len(p.Tags))
+	for i, t := range p.Tags {
+		names[i] = t.Name
+	}
+	return strings.Join(names, ", ")
+}
 
 var nonAlnum = regexp.MustCompile(`[^a-z0-9]+`)
 

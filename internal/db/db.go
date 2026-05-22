@@ -77,6 +77,20 @@ func migrate(db *sql.DB) error {
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			UNIQUE(tenant_id, name)
 		);
+
+		CREATE TABLE IF NOT EXISTS tags (
+			id        INTEGER PRIMARY KEY AUTOINCREMENT,
+			tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+			slug      TEXT NOT NULL,
+			name      TEXT NOT NULL,
+			UNIQUE(tenant_id, slug)
+		);
+
+		CREATE TABLE IF NOT EXISTS post_tags (
+			post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+			tag_id  INTEGER NOT NULL REFERENCES tags(id)  ON DELETE CASCADE,
+			PRIMARY KEY (post_id, tag_id)
+		);
 	`)
 	return err
 }
