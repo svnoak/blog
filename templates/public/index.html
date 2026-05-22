@@ -6,6 +6,9 @@
   <title>{{.Tenant.Name}}</title>
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="alternate" type="application/atom+xml" title="{{.Tenant.Name}}" href="/feed.xml">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{.Tenant.Name}}">
+  <meta property="og:url" content="{{.BaseURL}}">
   {{if .CustomFonts}}<style>{{range .CustomFonts}}
   @font-face{font-family:'{{.Name}}';src:url('/static/fonts/user/{{.Filename}}') format('woff2')}
   body[data-font="{{.Name}}"]{--zen-font:'{{.Name}}',Georgia,serif}{{end}}</style>{{end}}

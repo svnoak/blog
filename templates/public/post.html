@@ -6,6 +6,12 @@
   <title>{{.Post.Title}} — {{.Tenant.Name}}</title>
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="alternate" type="application/atom+xml" title="{{.Tenant.Name}}" href="/feed.xml">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="{{.Post.Title}}">
+  <meta property="og:url" content="{{.BaseURL}}/posts/{{.Post.Slug}}">
+  <meta property="og:description" content="{{.Excerpt}}">
+  <meta name="description" content="{{.Excerpt}}">
+  {{if .Post.PublishedAt}}<meta property="article:published_time" content="{{.Post.PublishedAt.Format "2006-01-02T15:04:05Z07:00"}}">{{end}}
   {{if .CustomFonts}}<style>{{range .CustomFonts}}
   @font-face{font-family:'{{.Name}}';src:url('/static/fonts/user/{{.Filename}}') format('woff2')}
   body[data-font="{{.Name}}"]{--zen-font:'{{.Name}}',Georgia,serif}{{end}}</style>{{end}}

@@ -6,6 +6,8 @@ import (
 	"encoding/xml"
 	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"bloggy/internal/middleware"
@@ -80,6 +82,17 @@ func siteBaseURL(r *http.Request) string {
 	return fmt.Sprintf("%s://%s", scheme, r.Host)
 }
 
+var stripTags = regexp.MustCompile(`<[^>]+>`)
+
+func plainExcerpt(htmlContent string, maxLen int) string {
+	plain := stripTags.ReplaceAllString(htmlContent, " ")
+	plain = strings.Join(strings.Fields(plain), " ")
+	if len(plain) > maxLen {
+		plain = plain[:maxLen] + "…"
+	}
+	return plain
+}
+
 func (h *PublicHandler) Index(w http.ResponseWriter, r *http.Request) {
 	tenant := middleware.TenantFromCtx(r.Context())
 	posts, err := models.ListPublishedPosts(h.DB, tenant.ID)
@@ -91,6 +104,7 @@ func (h *PublicHandler) Index(w http.ResponseWriter, r *http.Request) {
 		"Tenant":      tenant,
 		"Posts":       posts,
 		"CustomFonts": h.customFonts(tenant.ID),
+		"BaseURL":     siteBaseURL(r),
 	})
 }
 
@@ -117,12 +131,15 @@ func (h *PublicHandler) ShowPost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	base := siteBaseURL(r)
 	h.Tmpls.Render(w, "public/post.html", map[string]any{
 		"Tenant":      tenant,
 		"Post":        post,
 		"Content":     buf.String(),
 		"CustomFonts": h.customFonts(tenant.ID),
 		"LoggedIn":    loggedIn,
+		"BaseURL":     base,
+		"Excerpt":     plainExcerpt(buf.String(), 200),
 	})
 }
 
