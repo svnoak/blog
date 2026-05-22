@@ -9,7 +9,16 @@
 <body class="public-page">
   <header class="public-header">
     <a href="/" class="site-name">{{.Tenant.Name}}</a>
+    <button class="pub-theme-btn" id="pub-theme-btn" title="Switch theme" aria-label="Switch theme">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 1 0 7 7"/></svg>
+    </button>
   </header>
+  <div class="pub-theme-menu" id="pub-theme-menu" style="display:none">
+    <div class="pub-swatch" data-theme="paper" title="Paper" style="background:#F6F1E7"></div>
+    <div class="pub-swatch" data-theme="sepia" title="Sepia" style="background:#EFE2C8"></div>
+    <div class="pub-swatch" data-theme="mist" title="Mist" style="background:#F1F2EF"></div>
+    <div class="pub-swatch" data-theme="midnight" title="Midnight" style="background:#14130F"></div>
+  </div>
   <main class="public-main post-body">
     <article>
       <h1 class="post-title">{{.Post.Title}}</h1>
@@ -17,6 +26,43 @@
       <div class="post-content">{{safeHTML .Content}}</div>
     </article>
   </main>
+  <script>
+    (function() {
+      var DEFAULT_THEME = "{{.Tenant.Theme}}";
+      var stored = localStorage.getItem('bloggy-theme');
+      var theme = stored || DEFAULT_THEME || 'paper';
+      document.body.setAttribute('data-theme', theme);
+
+      var btn = document.getElementById('pub-theme-btn');
+      var menu = document.getElementById('pub-theme-menu');
+
+      function markActive(t) {
+        document.querySelectorAll('.pub-swatch').forEach(function(s) {
+          s.classList.toggle('is-active', s.dataset.theme === t);
+        });
+      }
+      markActive(theme);
+
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
+      });
+
+      document.querySelectorAll('.pub-swatch').forEach(function(s) {
+        s.addEventListener('click', function() {
+          var t = s.dataset.theme;
+          document.body.setAttribute('data-theme', t);
+          localStorage.setItem('bloggy-theme', t);
+          markActive(t);
+          menu.style.display = 'none';
+        });
+      });
+
+      document.addEventListener('click', function() {
+        menu.style.display = 'none';
+      });
+    })();
+  </script>
 </body>
 </html>
 {{end}}

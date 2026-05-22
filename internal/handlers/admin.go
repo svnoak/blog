@@ -141,6 +141,23 @@ func (h *AdminHandler) DeletePost(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin/posts", http.StatusFound)
 }
 
+// ── Settings ──────────────────────────────────────────────────────────────────
+
+func (h *AdminHandler) SettingsGet(w http.ResponseWriter, r *http.Request) {
+	tenant := middleware.TenantFromCtx(r.Context())
+	user, _ := h.currentUser(r)
+	h.Tmpls.Render(w, "admin/settings.html", map[string]any{
+		"Tenant": tenant,
+		"User":   user,
+	})
+}
+
+func (h *AdminHandler) SettingsPost(w http.ResponseWriter, r *http.Request) {
+	tenant := middleware.TenantFromCtx(r.Context())
+	middleware.UpdateTenantTheme(h.DB, tenant.ID, r.FormValue("theme"))
+	http.Redirect(w, r, "/admin/settings", http.StatusFound)
+}
+
 // ── User management ───────────────────────────────────────────────────────────
 
 func (h *AdminHandler) UserList(w http.ResponseWriter, r *http.Request) {

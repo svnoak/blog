@@ -12,6 +12,7 @@ type Tenant struct {
 	ID        int64
 	Name      string
 	Domain    string
+	Theme     string
 	CreatedAt time.Time
 }
 
@@ -37,12 +38,21 @@ func UpsertTenant(db *sql.DB, name, domain string) (*Tenant, error) {
 func getTenantByDomain(db *sql.DB, domain string) (*Tenant, error) {
 	var t Tenant
 	err := db.QueryRow(
-		`SELECT id, name, domain, created_at FROM tenants WHERE domain = ?`, domain,
-	).Scan(&t.ID, &t.Name, &t.Domain, &t.CreatedAt)
+		`SELECT id, name, domain, theme, created_at FROM tenants WHERE domain = ?`, domain,
+	).Scan(&t.ID, &t.Name, &t.Domain, &t.Theme, &t.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	return &t, err
+}
+
+func UpdateTenantTheme(db *sql.DB, tenantID int64, theme string) error {
+	valid := map[string]bool{"paper": true, "sepia": true, "mist": true, "midnight": true}
+	if !valid[theme] {
+		theme = "paper"
+	}
+	_, err := db.Exec(`UPDATE tenants SET theme = ? WHERE id = ?`, theme, tenantID)
+	return err
 }
 
 func TenantMiddleware(db *sql.DB) func(http.Handler) http.Handler {

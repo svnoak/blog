@@ -1,0 +1,48 @@
+{{define "admin/settings.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Settings — {{.Tenant.Name}}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="admin-page">
+  {{template "admin-nav" .}}
+  <main class="admin-main">
+    <div class="section-header">
+      <h2 class="section-title">Settings</h2>
+    </div>
+
+    <form method="post" action="/admin/settings">
+      <div class="settings-section">
+        <div class="settings-label">Default public theme</div>
+        <div class="settings-hint">Visitors can still change this from the site header.</div>
+        <div class="theme-swatches">
+          <label class="theme-swatch-label">
+            <input type="radio" name="theme" value="paper" {{if eq .Tenant.Theme "paper"}}checked{{end}}>
+            <span class="theme-swatch-dot" style="background:#F6F1E7"></span>
+            <span>Paper</span>
+          </label>
+          <label class="theme-swatch-label">
+            <input type="radio" name="theme" value="sepia" {{if eq .Tenant.Theme "sepia"}}checked{{end}}>
+            <span class="theme-swatch-dot" style="background:#EFE2C8"></span>
+            <span>Sepia</span>
+          </label>
+          <label class="theme-swatch-label">
+            <input type="radio" name="theme" value="mist" {{if eq .Tenant.Theme "mist"}}checked{{end}}>
+            <span class="theme-swatch-dot" style="background:#F1F2EF"></span>
+            <span>Mist</span>
+          </label>
+          <label class="theme-swatch-label">
+            <input type="radio" name="theme" value="midnight" {{if eq .Tenant.Theme "midnight"}}checked{{end}}>
+            <span class="theme-swatch-dot" style="background:#14130F;border-color:rgba(255,255,255,0.15)"></span>
+            <span>Midnight</span>
+          </label>
+        </div>
+      </div>
+      <button type="submit" class="btn-primary">Save</button>
+    </form>
+  </main>
+</body>
+</html>
+{{end}}

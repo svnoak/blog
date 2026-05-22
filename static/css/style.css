@@ -198,6 +198,84 @@ body::before {
 .empty-state { color: var(--zen-ink-3); font-family: var(--zen-font-ui); font-size: 0.88rem; }
 .empty-state a { color: var(--zen-ink); text-decoration: underline; }
 
+/* ── Public theme switcher ── */
+.public-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pub-theme-btn {
+  appearance: none; border: 0; background: transparent;
+  width: 30px; height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 6px;
+  color: var(--zen-ink-4);
+  cursor: pointer;
+  transition: color .15s, background .15s;
+  flex-shrink: 0;
+}
+.pub-theme-btn:hover { color: var(--zen-ink-3); background: var(--zen-accent-s); }
+.pub-theme-menu {
+  position: fixed;
+  top: 52px; right: 1.5rem;
+  background: var(--zen-paper);
+  border: 1px solid var(--zen-rule);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  padding: 8px;
+  z-index: 100;
+  display: flex; gap: 6px;
+  animation: menuIn .12s ease-out;
+}
+.pub-swatch {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid var(--zen-rule);
+  cursor: pointer; position: relative;
+  transition: border-color .15s;
+}
+.pub-swatch.is-active { border-color: var(--zen-accent); }
+.pub-swatch.is-active::after {
+  content: '';
+  position: absolute; inset: -4px;
+  border: 1.5px dashed var(--zen-accent);
+  border-radius: 50%;
+}
+
+/* ── Admin settings ── */
+.settings-section { margin-bottom: 2rem; }
+.settings-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--zen-ink-2);
+  margin-bottom: 0.25rem;
+}
+.settings-hint {
+  font-size: 0.78rem;
+  color: var(--zen-ink-3);
+  margin-bottom: 1rem;
+}
+.theme-swatches { display: flex; gap: 1rem; flex-wrap: wrap; }
+.theme-swatch-label {
+  display: flex; align-items: center; gap: 8px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: var(--zen-ink-2);
+  padding: 6px 10px 6px 6px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: border-color .15s, background .15s;
+}
+.theme-swatch-label:has(input:checked) {
+  border-color: var(--zen-rule);
+  background: var(--zen-paper-dp);
+}
+.theme-swatch-label input[type="radio"] { display: none; }
+.theme-swatch-dot {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid var(--zen-rule);
+  flex-shrink: 0;
+}
+
 /* ── Admin layout ── */
 .admin-page { font-family: var(--zen-font-ui); }
 
@@ -451,8 +529,8 @@ body::before {
   --zen-page-top: 148px;
 }
 
-/* Theme variants */
-.zen-page[data-theme="sepia"] {
+/* Theme variants — apply to any page via body[data-theme] */
+body[data-theme="sepia"] {
   --zen-paper:    #EFE2C8;
   --zen-paper-dp: #E6D6B3;
   --zen-ink:      #2A1F10;
@@ -464,7 +542,7 @@ body::before {
   --zen-accent-s: rgba(122,75,42,.14);
   --zen-chrome:   rgba(239,226,200,.84);
 }
-.zen-page[data-theme="mist"] {
+body[data-theme="mist"] {
   --zen-paper:    #F1F2EF;
   --zen-paper-dp: #E6E8E3;
   --zen-ink:      #1B1F1C;
@@ -476,7 +554,7 @@ body::before {
   --zen-accent-s: rgba(82,113,135,.14);
   --zen-chrome:   rgba(241,242,239,.84);
 }
-.zen-page[data-theme="midnight"] {
+body[data-theme="midnight"] {
   --zen-paper:    #14130F;
   --zen-paper-dp: #1A1814;
   --zen-ink:      #ECE4D3;
@@ -490,7 +568,7 @@ body::before {
 }
 
 /* Midnight overrides body grain */
-.zen-page[data-theme="midnight"]::before {
+body[data-theme="midnight"]::before {
   background-image: radial-gradient(rgba(255,255,255,0.022) 1px, transparent 1px);
   mix-blend-mode: screen;
 }

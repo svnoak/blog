@@ -19,6 +19,10 @@ func Open(path string) (*sql.DB, error) {
 	return db, nil
 }
 
+func addColumnIfMissing(db *sql.DB, table, column, definition string) {
+	db.Exec(fmt.Sprintf(`ALTER TABLE %s ADD COLUMN %s %s`, table, column, definition))
+}
+
 func migrate(db *sql.DB) error {
 	_, err := db.Exec(`
 		PRAGMA journal_mode=WAL;
@@ -55,5 +59,9 @@ func migrate(db *sql.DB) error {
 			UNIQUE(tenant_id, slug)
 		);
 	`)
-	return err
+	if err != nil {
+		return err
+	}
+	addColumnIfMissing(db, "tenants", "theme", `TEXT NOT NULL DEFAULT 'paper'`)
+	return nil
 }
