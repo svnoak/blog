@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"bloggy/internal/models"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 )
 
@@ -147,6 +149,74 @@ func (h *AdminHandler) DeletePost(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	models.DeletePost(h.DB, tenant.ID, id)
 	http.Redirect(w, r, "/admin/posts", http.StatusFound)
+}
+
+// ── Image upload ──────────────────────────────────────────────────────────────
+
+var allowedImageTypes = map[string]string{
+	"image/jpeg": ".jpg",
+	"image/png":  ".png",
+	"image/gif":  ".gif",
+	"image/webp": ".webp",
+}
+
+func (h *AdminHandler) ImageUpload(w http.ResponseWriter, r *http.Request) {
+	tenant := middleware.TenantFromCtx(r.Context())
+
+	r.Body = http.MaxBytesReader(w, r.Body, 10<<20) // 10 MB
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		http.Error(w, `{"error":"file too large"}`, http.StatusRequestEntityTooLarge)
+		return
+	}
+
+	file, header, err := r.FormFile("image")
+	if err != nil {
+		http.Error(w, `{"error":"no file"}`, http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// Detect MIME type from the first 512 bytes
+	buf := make([]byte, 512)
+	n, _ := file.Read(buf)
+	mime := http.DetectContentType(buf[:n])
+	// Seek back to start
+	if seeker, ok := file.(interface{ Seek(int64, int) (int64, error) }); ok {
+		seeker.Seek(0, 0)
+	}
+
+	ext, ok := allowedImageTypes[mime]
+	if !ok {
+		// Also try by file extension as a fallback
+		ext = strings.ToLower(filepath.Ext(header.Filename))
+		if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".gif" && ext != ".webp" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnsupportedMediaType)
+			w.Write([]byte(`{"error":"unsupported file type"}`))
+			return
+		}
+		if ext == ".jpeg" {
+			ext = ".jpg"
+		}
+	}
+
+	filename := fmt.Sprintf("%d_%s%s", tenant.ID, uuid.New().String(), ext)
+	dest := filepath.Join("static", "images", "user", filename)
+
+	out, err := os.Create(dest)
+	if err != nil {
+		http.Error(w, `{"error":"could not save file"}`, http.StatusInternalServerError)
+		return
+	}
+	defer out.Close()
+	if _, err := io.Copy(out, file); err != nil {
+		os.Remove(dest)
+		http.Error(w, `{"error":"could not save file"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"url": "/static/images/user/" + filename})
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────

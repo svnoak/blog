@@ -17,6 +17,7 @@ function initToolbar(container, { getMode, getEditorEl, getMdEl }) {
     CodeBlock: `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M6 7 4.5 8 6 9M10 7l1.5 1L10 9"/></svg>`,
     Table:     `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2" y="3.5" width="12" height="9" rx="1"/><path d="M2 7h12M2 10h12M8 3.5v9"/></svg>`,
     Hr:        `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 8h12"/><path d="M3 5h2M11 5h2M3 11h2M11 11h2" opacity=".4"/></svg>`,
+    Image:     `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1.5"/><circle cx="5.5" cy="6.5" r="1"/><path d="M2 11l3-3 2.5 2.5L10 8l4 4"/></svg>`,
   };
 
   function btn(icon, label, action, id = '') {
@@ -50,6 +51,7 @@ function initToolbar(container, { getMode, getEditorEl, getMdEl }) {
         ${sep()}
         ${group(
           btn(ICONS.Link,      'Link',         "_tbLink()"),
+          btn(ICONS.Image,     'Insert image', "_tbImage()"),
           btn(ICONS.CodeBlock, 'Code block',   "_tbCmd('codeblock')"),
           btn(ICONS.Table,     'Insert table', "_tbCmd('table')"),
           btn(ICONS.Hr,        'Divider',      "_tbCmd('hr')"),
@@ -206,6 +208,41 @@ function _tbCmd(cmd, value) {
     }
     window._editorOnChange && window._editorOnChange();
   }
+}
+
+function _tbImage() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/jpeg,image/png,image/gif,image/webp';
+  input.onchange = function() {
+    const file = input.files[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('image', file);
+    fetch('/admin/upload/image', { method: 'POST', body: fd })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (!data.url) return;
+        const mode = window._editorGetMode && window._editorGetMode();
+        const alt = file.name.replace(/\.[^.]+$/, '');
+        if (mode === 'wysiwyg') {
+          const el = document.getElementById('wysiwyg');
+          el && el.focus();
+          document.execCommand('insertHTML', false, `<img src="${data.url}" alt="${alt}">`);
+        } else {
+          const ta = document.getElementById('md-editor');
+          if (!ta) return;
+          const s = ta.selectionStart;
+          const val = ta.value;
+          const md = `![${alt}](${data.url})`;
+          ta.value = val.slice(0, s) + md + val.slice(ta.selectionEnd);
+          ta.selectionStart = ta.selectionEnd = s + md.length;
+        }
+        window._editorOnChange && window._editorOnChange();
+      })
+      .catch(function() { alert('Image upload failed.'); });
+  };
+  input.click();
 }
 
 function _tbLink() {

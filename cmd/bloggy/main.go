@@ -115,6 +115,7 @@ func runServe(args []string) {
 		r.Post("/admin/settings", adminH.SettingsPost)
 		r.Post("/admin/settings/fonts", adminH.FontUpload)
 		r.Post("/admin/settings/fonts/{id}/delete", adminH.FontDelete)
+		r.Post("/admin/upload/image", adminH.ImageUpload)
 	})
 
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
