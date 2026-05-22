@@ -152,10 +152,11 @@
 
     // ── Escape from PRE/code block: Enter at the very end exits to a new paragraph ──
     if (tag === 'PRE') {
-      const endRange = document.createRange();
-      endRange.selectNodeContents(blockEl);
-      endRange.collapse(false);
-      const atEnd = sel.getRangeAt(0).compareBoundaryPoints(Range.START_TO_START, endRange) >= 0;
+      const curRange = sel.getRangeAt(0);
+      const afterRange = document.createRange();
+      afterRange.selectNodeContents(blockEl);
+      afterRange.setStart(curRange.endContainer, curRange.endOffset);
+      const atEnd = afterRange.toString() === '';
       if (atEnd) {
         e.preventDefault();
         const p = document.createElement('p'); p.innerHTML = '<br>';
