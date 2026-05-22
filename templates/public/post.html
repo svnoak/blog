@@ -12,6 +12,7 @@
 <body class="public-page" data-font="{{.Tenant.PubFont}}">
   <header class="public-header">
     <a href="/" class="site-name">{{.Tenant.Name}}</a>
+    {{if .LoggedIn}}<a href="/admin/posts/{{.Post.ID}}/edit" class="pub-edit-link">Edit post</a>{{end}}
     <button class="pub-theme-btn" id="pub-theme-btn" title="Switch theme" aria-label="Switch theme">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 1 0 7 7"/></svg>
     </button>

@@ -9,6 +9,7 @@ import (
 	"bloggy/internal/models"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/gorilla/sessions"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/renderer/html"
@@ -17,15 +18,16 @@ import (
 type PublicHandler struct {
 	DB    *sql.DB
 	Tmpls *Templates
+	Store sessions.Store
 	md    goldmark.Markdown
 }
 
-func NewPublicHandler(db *sql.DB, tmpls *Templates) *PublicHandler {
+func NewPublicHandler(db *sql.DB, tmpls *Templates, store sessions.Store) *PublicHandler {
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM),
 		goldmark.WithRendererOptions(html.WithUnsafe()),
 	)
-	return &PublicHandler{DB: db, Tmpls: tmpls, md: md}
+	return &PublicHandler{DB: db, Tmpls: tmpls, Store: store, md: md}
 }
 
 func (h *PublicHandler) customFonts(tenantID int64) []middleware.CustomFont {
@@ -63,10 +65,18 @@ func (h *PublicHandler) ShowPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	loggedIn := false
+	if h.Store != nil {
+		if sess, err := h.Store.Get(r, middleware.SessionName); err == nil {
+			_, loggedIn = sess.Values[middleware.SessionUserID].(int64)
+		}
+	}
+
 	h.Tmpls.Render(w, "public/post.html", map[string]any{
 		"Tenant":      tenant,
 		"Post":        post,
 		"Content":     buf.String(),
 		"CustomFonts": h.customFonts(tenant.ID),
+		"LoggedIn":    loggedIn,
 	})
 }

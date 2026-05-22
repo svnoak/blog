@@ -204,6 +204,18 @@ body::before {
   align-items: center;
   justify-content: space-between;
 }
+.pub-edit-link {
+  font-size: 0.78rem;
+  color: var(--zen-ink-3);
+  text-decoration: none;
+  border: 1px solid var(--zen-rule);
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius);
+  transition: color .15s, border-color .15s;
+  margin-left: auto;
+  margin-right: 0.5rem;
+}
+.pub-edit-link:hover { color: var(--zen-ink); border-color: var(--zen-ink-3); }
 .pub-theme-btn {
   appearance: none; border: 0; background: transparent;
   width: 30px; height: 30px;

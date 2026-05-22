@@ -66,7 +66,7 @@ func runServe(args []string) {
 	}
 
 	authH := &handlers.AuthHandler{DB: database, Store: store, Tmpls: tmpls}
-	publicH := handlers.NewPublicHandler(database, tmpls)
+	publicH := handlers.NewPublicHandler(database, tmpls, store)
 	adminH := &handlers.AdminHandler{DB: database, Store: store, Tmpls: tmpls}
 	setupH := &handlers.SetupHandler{DB: database, Store: store, Tmpls: tmpls}
 
