@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -18,6 +19,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/extension"
+	"github.com/yuin/goldmark/renderer/html"
 )
 
 type AdminHandler struct {
@@ -149,6 +153,41 @@ func (h *AdminHandler) DeletePost(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	models.DeletePost(h.DB, tenant.ID, id)
 	http.Redirect(w, r, "/admin/posts", http.StatusFound)
+}
+
+func (h *AdminHandler) PreviewPost(w http.ResponseWriter, r *http.Request) {
+	tenant := middleware.TenantFromCtx(r.Context())
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	post, err := models.GetPostByID(h.DB, tenant.ID, id)
+	if err != nil || post == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	md := goldmark.New(
+		goldmark.WithExtensions(extension.GFM),
+		goldmark.WithRendererOptions(html.WithUnsafe()),
+	)
+	var buf bytes.Buffer
+	if err := md.Convert([]byte(post.Content), &buf); err != nil {
+		http.Error(w, "render error", http.StatusInternalServerError)
+		return
+	}
+
+	h.Tmpls.Render(w, "public/post.html", map[string]any{
+		"Tenant":      tenant,
+		"Post":        post,
+		"Content":     buf.String(),
+		"CustomFonts": h.customFonts(tenant.ID),
+		"LoggedIn":    true,
+		"BaseURL":     "",
+		"Excerpt":     "",
+		"IsPreview":   true,
+	})
 }
 
 // ── Image upload ──────────────────────────────────────────────────────────────

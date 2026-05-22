@@ -209,6 +209,14 @@ body::before {
   align-items: center;
   justify-content: space-between;
 }
+.preview-banner {
+  background: #92400e;
+  color: #fff;
+  text-align: center;
+  font-size: 0.8rem;
+  padding: 0.35rem 1rem;
+}
+.preview-banner a { color: #fcd34d; text-decoration: underline; }
 .pub-edit-link {
   font-size: 0.78rem;
   color: var(--zen-ink-3);

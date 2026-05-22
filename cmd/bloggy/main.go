@@ -101,6 +101,7 @@ func runServe(args []string) {
 		r.Get("/admin/posts/new", adminH.NewPost)
 		r.Post("/admin/posts", adminH.CreatePost)
 		r.Get("/admin/posts/{id}/edit", adminH.EditPost)
+		r.Get("/admin/posts/{id}/preview", adminH.PreviewPost)
 		r.Post("/admin/posts/{id}", adminH.UpdatePost)
 		r.Post("/admin/posts/{id}/publish", adminH.PublishPost)
 		r.Post("/admin/posts/{id}/unpublish", adminH.UnpublishPost)
