@@ -876,8 +876,11 @@ body[data-theme="midnight"]::before {
 }
 
 /* ── Focus mode ── */
+.focus-mode .zen-title,
 .focus-mode .zen-editor > * { transition: opacity .25s ease, filter .25s ease; }
+.focus-mode .zen-title:not(.is-focused),
 .focus-mode .zen-editor > *:not(.is-focused) { opacity: .25; filter: blur(0.2px); }
+.focus-mode .zen-title.is-focused,
 .focus-mode .zen-editor > .is-focused { opacity: 1; }
 
 /* ── Theme / overflow menu ── */

@@ -212,6 +212,14 @@
     document.title = titleInput.value || 'Untitled';
     scheduleAutosave();
   });
+  titleInput.addEventListener('focus', () => {
+    if (!focusMode) return;
+    wysiwyg.querySelectorAll('.is-focused').forEach(el => el.classList.remove('is-focused'));
+    titleInput.classList.add('is-focused');
+  });
+  titleInput.addEventListener('blur', () => {
+    titleInput.classList.remove('is-focused');
+  });
 
   // ── Chrome auto-hide ──────────────────────────────────────────────────────────
   function bumpActivity() {
