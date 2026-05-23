@@ -152,7 +152,7 @@
     showToolbar = on;
     toolbarRow.style.display = on ? '' : 'none';
     spToolbar && spToolbar.setAttribute('aria-pressed', String(on));
-    document.body.style.setProperty('--zen-page-top', on ? '148px' : '100px');
+    document.body.style.setProperty('--zen-page-top', on ? '152px' : '104px');
     localStorage.setItem('bloggy-toolbar', on ? '1' : '0');
   }
   function toggleToolbar() { setToolbar(!showToolbar); }
@@ -264,6 +264,7 @@
       const chip = document.createElement('span');
       chip.className = 'tag-chip-editor';
       chip.innerHTML =
+        '<span class="tag-chip-editor-hash">#</span>' +
         '<span class="tag-chip-editor-name"></span>' +
         '<button type="button" class="tag-chip-editor-remove" aria-label="Remove tag">×</button>';
       chip.querySelector('.tag-chip-editor-name').textContent = tag.name;
