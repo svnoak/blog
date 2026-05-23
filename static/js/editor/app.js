@@ -20,6 +20,10 @@
   const statusbar  = document.getElementById('statusbar');
   const zenColumn  = document.querySelector('.zen-column');
 
+  // Topbar icon buttons
+  const focusBtn      = document.getElementById('focus-btn');
+  const toolbarBtn    = document.getElementById('toolbar-btn');
+
   // Settings panel
   const settingsBtn  = document.getElementById('settings-btn');
   const settingsPanel = document.getElementById('settings-panel');
@@ -109,11 +113,16 @@
     focusMode = on;
     document.body.classList.toggle('focus-mode', on);
     spFocus && spFocus.setAttribute('aria-pressed', String(on));
+    if (focusBtn) {
+      focusBtn.classList.toggle('is-active', on);
+      focusBtn.setAttribute('aria-pressed', String(on));
+    }
     localStorage.setItem('bloggy-focus', on ? '1' : '0');
   }
   function toggleFocusMode() { setFocusMode(!focusMode); }
 
   spFocus && spFocus.addEventListener('click', toggleFocusMode);
+  focusBtn && focusBtn.addEventListener('click', toggleFocusMode);
 
   // ── Typewriter scroll ─────────────────────────────────────────────────────────
   function setTypewriter(on) {
@@ -152,11 +161,16 @@
     showToolbar = on;
     toolbarRow.style.display = on ? '' : 'none';
     spToolbar && spToolbar.setAttribute('aria-pressed', String(on));
+    if (toolbarBtn) {
+      toolbarBtn.classList.toggle('is-active', on);
+      toolbarBtn.setAttribute('aria-pressed', String(on));
+    }
     document.body.style.setProperty('--zen-page-top', on ? '152px' : '104px');
     localStorage.setItem('bloggy-toolbar', on ? '1' : '0');
   }
   function toggleToolbar() { setToolbar(!showToolbar); }
   spToolbar && spToolbar.addEventListener('click', toggleToolbar);
+  toolbarBtn && toolbarBtn.addEventListener('click', toggleToolbar);
 
   // ── Status bar toggle ─────────────────────────────────────────────────────────
   function setStatusbar(on) {
@@ -322,6 +336,7 @@
     mdTextarea.style.display = mode === 'markdown' ? '' : 'none';
     document.getElementById('btn-write').setAttribute('aria-pressed', String(mode === 'wysiwyg'));
     document.getElementById('btn-md').setAttribute('aria-pressed',    String(mode === 'markdown'));
+    if (mode === 'markdown') autoResizeMd();
     updateStats();
     bumpActivity();
   }
@@ -517,8 +532,16 @@
     if (n && n !== wysiwyg) n.classList.add('is-focused');
   });
 
+  // ── Markdown editor auto-resize (avoid inner scrollbar) ──────────────────────
+  function autoResizeMd() {
+    if (mdTextarea.style.display === 'none') return;
+    mdTextarea.style.height = 'auto';
+    mdTextarea.style.height = mdTextarea.scrollHeight + 'px';
+  }
+
   // ── Markdown editor events ────────────────────────────────────────────────────
   mdTextarea.addEventListener('input', () => {
+    autoResizeMd();
     updateStats();
     scheduleAutosave();
     doTypewriterScroll();

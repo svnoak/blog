@@ -979,6 +979,7 @@ body[data-font="mono"] {
   min-height: calc(100vh - 300px);
   appearance: none; border: 0; outline: 0;
   background: transparent; resize: none;
+  overflow: hidden;
   font-family: var(--zen-font-ui);
   font-size: 0.95rem; line-height: 1.75;
   color: var(--zen-ink); caret-color: var(--zen-accent);

@@ -19,15 +19,6 @@
         <a href="/admin/posts" class="zen-back" title="Back to posts">Posts</a>
       </div>
 
-      <div class="zen-topbar-center">
-        <div class="zen-modes" role="tablist" aria-label="Editor mode">
-          <button id="btn-write" role="tab" class="mode-btn" aria-pressed="true"
-                  onclick="setMode('wysiwyg')">Write</button>
-          <button id="btn-md"    role="tab" class="mode-btn" aria-pressed="false"
-                  onclick="setMode('markdown')">Markdown</button>
-        </div>
-      </div>
-
       <div class="zen-topbar-right">
         <span id="save-status" class="save-status"></span>
 
@@ -42,11 +33,33 @@
           <button type="button" class="zen-btn-primary" onclick="submitPost('publish')">Publish</button>
         {{end}}
 
-        <button type="button" id="settings-btn" class="zen-icon-btn" title="Settings">
+        <div class="zen-modes" role="tablist" aria-label="Editor mode">
+          <button id="btn-write" role="tab" class="mode-btn" aria-pressed="true"
+                  onclick="setMode('wysiwyg')">Write</button>
+          <button id="btn-md"    role="tab" class="mode-btn" aria-pressed="false"
+                  onclick="setMode('markdown')">Markdown</button>
+        </div>
+
+        <button type="button" id="focus-btn" class="zen-icon-btn" title="Focus mode (⌘.)" aria-pressed="false">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-            <line x1="3" y1="4" x2="13" y2="4"/>
-            <line x1="3" y1="8" x2="13" y2="8"/>
-            <line x1="3" y1="12" x2="13" y2="12"/>
+            <circle cx="8" cy="8" r="5"/>
+            <circle cx="8" cy="8" r="1.4" fill="currentColor" stroke="none"/>
+          </svg>
+        </button>
+
+        <button type="button" id="toolbar-btn" class="zen-icon-btn" title="Toggle toolbar (⌘/)" aria-pressed="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2.25" y="3.5" width="11.5" height="3" rx="1"/>
+            <line x1="4" y1="9.5" x2="11" y2="9.5"/>
+            <line x1="4" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+
+        <button type="button" id="settings-btn" class="zen-icon-btn" title="Settings">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <circle cx="3.5" cy="8" r="1.25"/>
+            <circle cx="8" cy="8" r="1.25"/>
+            <circle cx="12.5" cy="8" r="1.25"/>
           </svg>
         </button>
       </div>
