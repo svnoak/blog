@@ -843,7 +843,7 @@ body[data-font="mono"] {
   align-items: center;
   gap: 6px;
   min-height: 26px;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.6rem;
 }
 .tag-chip-editor {
   display: inline-flex;
@@ -1041,6 +1041,8 @@ body[data-font="mono"] {
 .focus-mode .zen-editor > *:not(.is-focused) { opacity: .25; filter: blur(0.2px); }
 .focus-mode .zen-title.is-focused,
 .focus-mode .zen-editor > .is-focused { opacity: 1; }
+.focus-mode .tag-chips-row { opacity: .2; transition: opacity .25s ease; }
+.focus-mode .tag-chips-row:focus-within { opacity: 1; }
 
 /* ── Theme / overflow menu ── */
 #zen-menu {

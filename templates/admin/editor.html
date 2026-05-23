@@ -141,6 +141,10 @@
 
     <div class="zen-page-content">
       <div class="zen-column">
+        <div id="tag-chips-row" class="tag-chips-row">
+          <input type="text" id="tag-chips-input" class="tag-chips-input" placeholder="Add tag…" autocomplete="off" spellcheck="false">
+        </div>
+
         <input
           type="text"
           name="title"
@@ -150,10 +154,6 @@
           value="{{if .Post}}{{.Post.Title}}{{end}}"
           autocomplete="off"
         >
-
-        <div id="tag-chips-row" class="tag-chips-row">
-          <input type="text" id="tag-chips-input" class="tag-chips-input" placeholder="Add tag…" autocomplete="off" spellcheck="false">
-        </div>
 
         <div
           id="wysiwyg"
