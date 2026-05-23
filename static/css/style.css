@@ -1194,6 +1194,53 @@ body[data-font="mono"] {
 }
 .postit:hover .postit-x { opacity: .8; }
 .postit-x:hover { background: rgba(0,0,0,.16); opacity: 1; }
+
+/* Color picker button (upper-left corner) */
+.postit-color-btn {
+  position: absolute;
+  top: 5px; left: 5px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,.18);
+  box-shadow: 0 1px 0 rgba(255,255,255,.6) inset;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .15s ease, transform .15s ease;
+  z-index: 2;
+}
+.postit:hover .postit-color-btn { opacity: .85; }
+.postit-color-btn:hover, .postit-color-btn[aria-expanded="true"] {
+  opacity: 1;
+  transform: scale(1.15);
+}
+.postit-color-pop {
+  position: absolute;
+  top: 24px; left: 4px;
+  display: inline-flex;
+  gap: 4px;
+  padding: 5px 6px;
+  background: var(--zen-paper);
+  border: 1px solid var(--zen-rule);
+  border-radius: 999px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.15), 0 1px 0 rgba(255,255,255,.6) inset;
+  z-index: 3;
+  animation: panelIn .14s ease-out;
+}
+.postit-color-pop[hidden] { display: none; }
+.postit-color-swatch {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,.18);
+  box-shadow: 0 1px 0 rgba(255,255,255,.5) inset;
+  padding: 0;
+  cursor: pointer;
+  transition: transform .15s ease;
+}
+.postit-color-swatch:hover { transform: scale(1.18); }
+.postit-color-swatch.is-active {
+  box-shadow: 0 1px 0 rgba(255,255,255,.5) inset, 0 0 0 2px var(--zen-paper), 0 0 0 3px var(--zen-accent);
+}
 .postit-clear {
   margin: 6px auto 0; display: block;
   appearance: none; border: 0; background: transparent;

@@ -81,6 +81,13 @@ function initScratchpad(panel, opts) {
     n.text = text;
     save();
   }
+  function setColor(id, colorId) {
+    const n = notes.find(x => x.id === id);
+    if (!n) return;
+    n.color = colorId;
+    save();
+    render();
+  }
   function clearAll() {
     if (!confirm('Clear all scratchpad notes?')) return;
     notes = [];
@@ -161,7 +168,19 @@ function initScratchpad(panel, opts) {
       node.style.setProperty('--note-ink', c.ink);
       node.style.setProperty('--note-tilt', `${n.tilt}deg`);
       node.style.transform = `rotate(${n.tilt}deg)`;
+      const swatches = COLORS.map(col => `
+        <button type="button" class="postit-color-swatch ${col.id === n.color ? 'is-active' : ''}"
+                data-color="${col.id}"
+                style="background:${col.bg}"
+                title="${col.id}" aria-label="Change to ${col.id}"></button>
+      `).join('');
+
       node.innerHTML = `
+        <button type="button" class="postit-color-btn"
+                title="Change color" aria-label="Change color"
+                aria-haspopup="true" aria-expanded="false"
+                style="background:${c.bg}"></button>
+        <div class="postit-color-pop" hidden role="menu">${swatches}</div>
         <span class="postit-grip" title="Drag to reorder" aria-hidden="true"></span>
         <button type="button" class="postit-x" title="Delete note" aria-label="Delete note">×</button>
         <textarea class="postit-input" rows="3" spellcheck="true"
@@ -174,6 +193,29 @@ function initScratchpad(panel, opts) {
       ta.addEventListener('mousedown', (e) => e.stopPropagation());
       ta.addEventListener('dragstart', (e) => e.preventDefault());
       node.querySelector('.postit-x').addEventListener('click', () => deleteNote(n.id));
+
+      // Color picker
+      const colorBtn = node.querySelector('.postit-color-btn');
+      const colorPop = node.querySelector('.postit-color-pop');
+      colorBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+      colorBtn.addEventListener('dragstart',  (e) => e.preventDefault());
+      colorBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const wasOpen = !colorPop.hidden;
+        // Close any other open popovers in the stack
+        stack.querySelectorAll('.postit-color-pop').forEach(p => p.hidden = true);
+        stack.querySelectorAll('.postit-color-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+        colorPop.hidden = wasOpen;
+        colorBtn.setAttribute('aria-expanded', String(!wasOpen));
+      });
+      colorPop.addEventListener('mousedown', (e) => e.stopPropagation());
+      colorPop.querySelectorAll('.postit-color-swatch').forEach(sw => {
+        sw.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setColor(n.id, sw.dataset.color);
+        });
+      });
+
       bindDrag(node, i);
       stack.appendChild(node);
       grow(ta);
@@ -194,6 +236,19 @@ function initScratchpad(panel, opts) {
   function onShow() {
     stack.querySelectorAll('.postit-input').forEach(grow);
   }
+
+  // Close any open color popovers on outside click / Escape.
+  document.addEventListener('mousedown', () => {
+    stack.querySelectorAll('.postit-color-pop:not([hidden])').forEach(p => p.hidden = true);
+    stack.querySelectorAll('.postit-color-btn[aria-expanded="true"]')
+      .forEach(b => b.setAttribute('aria-expanded', 'false'));
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    stack.querySelectorAll('.postit-color-pop:not([hidden])').forEach(p => p.hidden = true);
+    stack.querySelectorAll('.postit-color-btn[aria-expanded="true"]')
+      .forEach(b => b.setAttribute('aria-expanded', 'false'));
+  });
 
   render();
   return { onShow };
