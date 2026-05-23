@@ -245,6 +245,9 @@
     closeSettings();
   });
 
+  // ── Tags ─────────────────────────────────────────────────────────────────────
+  spTags && spTags.addEventListener('input', scheduleAutosave);
+
   // ── Mode switching ────────────────────────────────────────────────────────────
   function setMode(mode) {
     if (mode === currentMode) return;
