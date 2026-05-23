@@ -93,6 +93,49 @@ function initScratchpad(panel, opts) {
     ta.style.height = ta.scrollHeight + 'px';
   }
 
+  // ── Drag-and-drop reordering ─────────────────────────────────────────────────
+  let dragIdx = -1;
+  function clearDropTargets() {
+    stack.querySelectorAll('.is-drop-target, .is-drop-target-after')
+      .forEach(el => el.classList.remove('is-drop-target', 'is-drop-target-after'));
+  }
+  function bindDrag(node, idx) {
+    node.draggable = true;
+    node.addEventListener('dragstart', (e) => {
+      dragIdx = idx;
+      node.classList.add('is-dragging');
+      try { e.dataTransfer.setData('text/plain', String(idx)); } catch (_) {}
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    node.addEventListener('dragend', () => {
+      node.classList.remove('is-dragging');
+      clearDropTargets();
+      dragIdx = -1;
+    });
+    node.addEventListener('dragover', (e) => {
+      if (dragIdx < 0 || dragIdx === idx) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const rect = node.getBoundingClientRect();
+      const after = (e.clientY - rect.top) > rect.height / 2;
+      clearDropTargets();
+      node.classList.add(after ? 'is-drop-target-after' : 'is-drop-target');
+    });
+    node.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (dragIdx < 0) return;
+      const rect = node.getBoundingClientRect();
+      const after = (e.clientY - rect.top) > rect.height / 2;
+      let target = after ? idx + 1 : idx;
+      const [moved] = notes.splice(dragIdx, 1);
+      if (dragIdx < target) target -= 1;
+      notes.splice(target, 0, moved);
+      save();
+      dragIdx = -1;
+      render();
+    });
+  }
+
   function render() {
     stack.innerHTML = '';
     if (notes.length === 0) {
@@ -110,14 +153,16 @@ function initScratchpad(panel, opts) {
       return;
     }
 
-    notes.forEach(n => {
+    notes.forEach((n, i) => {
       const c = colorOf(n.color);
       const node = document.createElement('div');
       node.className = 'postit';
       node.style.setProperty('--note-bg', c.bg);
       node.style.setProperty('--note-ink', c.ink);
+      node.style.setProperty('--note-tilt', `${n.tilt}deg`);
       node.style.transform = `rotate(${n.tilt}deg)`;
       node.innerHTML = `
+        <span class="postit-grip" title="Drag to reorder" aria-hidden="true"></span>
         <button type="button" class="postit-x" title="Delete note" aria-label="Delete note">×</button>
         <textarea class="postit-input" rows="3" spellcheck="true"
           placeholder="A thought, an idea, a thing to remember…"></textarea>
@@ -125,7 +170,11 @@ function initScratchpad(panel, opts) {
       const ta = node.querySelector('.postit-input');
       ta.value = n.text;
       ta.addEventListener('input', () => { grow(ta); updateText(n.id, ta.value); });
+      // Don't initiate drag from inside the textarea — preserve text selection.
+      ta.addEventListener('mousedown', (e) => e.stopPropagation());
+      ta.addEventListener('dragstart', (e) => e.preventDefault());
       node.querySelector('.postit-x').addEventListener('click', () => deleteNote(n.id));
+      bindDrag(node, i);
       stack.appendChild(node);
       grow(ta);
     });

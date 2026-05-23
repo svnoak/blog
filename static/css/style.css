@@ -1120,14 +1120,38 @@ body[data-font="mono"] {
   position: relative;
   background: var(--note-bg, #f5d97a);
   color: var(--note-ink, #3a2a08);
-  padding: 14px 14px 12px;
+  padding: 18px 14px 12px;
   box-shadow:
     0 1px 0 rgba(255,255,255,.4) inset,
     0 4px 10px rgba(0,0,0,.10),
     0 12px 22px rgba(0,0,0,.06);
   border-radius: 2px;
-  transition: transform .2s ease, box-shadow .2s ease;
+  cursor: grab;
+  transition: transform .2s ease, box-shadow .2s ease, opacity .2s ease;
 }
+.postit:active { cursor: grabbing; }
+.postit.is-dragging {
+  opacity: .35;
+  transform: rotate(0deg) !important;
+}
+.postit.is-drop-target        { box-shadow: 0 -3px 0 var(--zen-accent), 0 4px 10px rgba(0,0,0,.10), 0 12px 22px rgba(0,0,0,.06); }
+.postit.is-drop-target-after  { box-shadow:  0  3px 0 var(--zen-accent), 0 4px 10px rgba(0,0,0,.10), 0 12px 22px rgba(0,0,0,.06); }
+
+/* Small grip dots at top of each note — a visible drag handle */
+.postit-grip {
+  position: absolute;
+  top: 5px; left: 50%;
+  transform: translateX(-50%);
+  width: 22px; height: 6px;
+  background-image: radial-gradient(currentColor 1px, transparent 1.2px);
+  background-size: 5px 6px;
+  background-position: 0 2px;
+  background-repeat: repeat-x;
+  opacity: .25;
+  pointer-events: none;
+  z-index: 1;
+}
+.postit:hover .postit-grip { opacity: .45; }
 .postit::before {
   content: "";
   position: absolute;
