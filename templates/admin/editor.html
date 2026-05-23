@@ -112,10 +112,6 @@
     <button class="sp-action" id="sp-export">Export as Markdown</button>
     <button class="sp-action sp-action-danger" id="sp-clear">Clear page</button>
 
-    <div class="sp-sep"></div>
-
-    <div class="sp-label">Tags</div>
-    <input type="text" class="sp-text-input" id="sp-tags" placeholder="go, tutorial, web" autocomplete="off">
   </div>
 
   <!-- Selection bubble (populated by bubble.js) -->
@@ -154,6 +150,10 @@
           value="{{if .Post}}{{.Post.Title}}{{end}}"
           autocomplete="off"
         >
+
+        <div id="tag-chips-row" class="tag-chips-row">
+          <input type="text" id="tag-chips-input" class="tag-chips-input" placeholder="Add tag…" autocomplete="off" spellcheck="false">
+        </div>
 
         <div
           id="wysiwyg"

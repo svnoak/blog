@@ -34,7 +34,6 @@
   const spFontVal    = document.getElementById('sp-font-val');
   const spExport     = document.getElementById('sp-export');
   const spClear      = document.getElementById('sp-clear');
-  const spTags       = document.getElementById('sp-tags');
 
   // ── State ────────────────────────────────────────────────────────────────────
   let currentMode   = 'wysiwyg';
@@ -245,8 +244,67 @@
     closeSettings();
   });
 
-  // ── Tags ─────────────────────────────────────────────────────────────────────
-  spTags && spTags.addEventListener('input', scheduleAutosave);
+  // ── Tag chips ────────────────────────────────────────────────────────────────
+  const tagChipsRow   = document.getElementById('tag-chips-row');
+  const tagChipsInput = document.getElementById('tag-chips-input');
+  const tagsHidden    = document.getElementById('tags-input');
+  let editorTags = []; // [{name, slug}]
+
+  function tagSlugify(s) {
+    return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
+
+  function syncTagsHidden() {
+    tagsHidden.value = editorTags.map(t => t.name).join(', ');
+  }
+
+  function renderEditorChips() {
+    tagChipsRow.querySelectorAll('.tag-chip-editor').forEach(c => c.remove());
+    editorTags.forEach((tag, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'tag-chip-editor';
+      chip.innerHTML =
+        '<span class="tag-chip-editor-name"></span>' +
+        '<button type="button" class="tag-chip-editor-remove" aria-label="Remove tag">×</button>';
+      chip.querySelector('.tag-chip-editor-name').textContent = tag.name;
+      chip.querySelector('.tag-chip-editor-remove').addEventListener('click', () => {
+        editorTags.splice(i, 1);
+        renderEditorChips();
+        syncTagsHidden();
+        scheduleAutosave();
+      });
+      tagChipsRow.insertBefore(chip, tagChipsInput);
+    });
+    syncTagsHidden();
+  }
+
+  function addEditorTag(raw) {
+    const name = raw.trim().replace(/,+$/, '').trim();
+    const slug = tagSlugify(name);
+    if (!slug || editorTags.some(t => t.slug === slug)) return;
+    editorTags.push({ name, slug });
+    renderEditorChips();
+    scheduleAutosave();
+  }
+
+  if (tagChipsInput) {
+    tagChipsInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        if (tagChipsInput.value.trim()) addEditorTag(tagChipsInput.value);
+        tagChipsInput.value = '';
+      }
+      if (e.key === 'Backspace' && tagChipsInput.value === '' && editorTags.length > 0) {
+        editorTags.pop();
+        renderEditorChips();
+        syncTagsHidden();
+        scheduleAutosave();
+      }
+    });
+    tagChipsInput.addEventListener('blur', () => {
+      if (tagChipsInput.value.trim()) { addEditorTag(tagChipsInput.value); tagChipsInput.value = ''; }
+    });
+  }
 
   // ── Mode switching ────────────────────────────────────────────────────────────
   function setMode(mode) {
@@ -518,7 +576,7 @@
     const data = new FormData();
     data.append('content', content);
     data.append('title',   title);
-    data.append('tags',    spTags ? spTags.value : '');
+    data.append('tags',    tagsHidden ? tagsHidden.value : '');
     data.append('action',  'save');
     saveDot.classList.add('saving');
     saveLabel.textContent = 'Saving…';
@@ -551,7 +609,7 @@
     const content = currentMode === 'wysiwyg' ? htmlToMd(wysiwyg.innerHTML) : mdTextarea.value;
     document.getElementById('content-input').value = content;
     document.getElementById('action-input').value  = action;
-    document.getElementById('tags-input').value    = spTags ? spTags.value : '';
+    // tags-input already kept in sync by syncTagsHidden()
     postForm.submit();
   };
 
@@ -624,7 +682,9 @@
       applyFontSize(parseInt(storedFontSize, 10));
     }
 
-    // Tags
-    if (spTags && window.EDITOR_TAGS) spTags.value = window.EDITOR_TAGS;
+    // Tags — init chips from server-rendered value
+    if (window.EDITOR_TAGS) {
+      window.EDITOR_TAGS.split(',').forEach(n => { if (n.trim()) addEditorTag(n); });
+    }
   })();
 })();
