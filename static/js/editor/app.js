@@ -23,6 +23,12 @@
   // Topbar icon buttons
   const focusBtn      = document.getElementById('focus-btn');
   const toolbarBtn    = document.getElementById('toolbar-btn');
+  const outlineBtn    = document.getElementById('outline-btn');
+  const scratchpadBtn = document.getElementById('scratchpad-btn');
+
+  // Side panels
+  const outlinePanel    = document.getElementById('outline-panel');
+  const scratchpadPanel = document.getElementById('scratchpad-panel');
 
   // Settings panel
   const settingsBtn  = document.getElementById('settings-btn');
@@ -171,6 +177,43 @@
   function toggleToolbar() { setToolbar(!showToolbar); }
   spToolbar && spToolbar.addEventListener('click', toggleToolbar);
   toolbarBtn && toolbarBtn.addEventListener('click', toggleToolbar);
+
+  // ── Side panels: outline + scratchpad ─────────────────────────────────────────
+  const outlineApi = initOutline(outlinePanel, {
+    getMode:     () => currentMode,
+    getEditorEl: () => wysiwyg,
+    getMdEl:     () => mdTextarea,
+    onClose:     () => setOutline(false),
+  });
+  const scratchpadApi = initScratchpad(scratchpadPanel, {
+    onClose: () => setScratchpad(false),
+  });
+
+  function setOutline(on) {
+    outlinePanel.hidden = !on;
+    if (outlineBtn) {
+      outlineBtn.classList.toggle('is-active', on);
+      outlineBtn.setAttribute('aria-pressed', String(on));
+    }
+    localStorage.setItem('bloggy-outline', on ? '1' : '0');
+    if (on) outlineApi.refresh();
+  }
+  function setScratchpad(on) {
+    scratchpadPanel.hidden = !on;
+    if (scratchpadBtn) {
+      scratchpadBtn.classList.toggle('is-active', on);
+      scratchpadBtn.setAttribute('aria-pressed', String(on));
+    }
+    localStorage.setItem('bloggy-scratchpad', on ? '1' : '0');
+    if (on && scratchpadApi.onShow) scratchpadApi.onShow();
+  }
+  outlineBtn    && outlineBtn.addEventListener('click',    () => setOutline(outlinePanel.hidden));
+  scratchpadBtn && scratchpadBtn.addEventListener('click', () => setScratchpad(scratchpadPanel.hidden));
+
+  // Refresh outline as document changes (only when panel is open).
+  function refreshOutlineIfOpen() {
+    if (!outlinePanel.hidden) outlineApi.refresh();
+  }
 
   // ── Status bar toggle ─────────────────────────────────────────────────────────
   function setStatusbar(on) {
@@ -338,6 +381,7 @@
     document.getElementById('btn-md').setAttribute('aria-pressed',    String(mode === 'markdown'));
     if (mode === 'markdown') autoResizeMd();
     updateStats();
+    refreshOutlineIfOpen();
     bumpActivity();
   }
   window.setMode = setMode;
@@ -373,6 +417,7 @@
     updateStats();
     scheduleAutosave();
     doTypewriterScroll();
+    refreshOutlineIfOpen();
   });
 
   // Markdown shortcuts: `# `, `> `, `- `, `1. ` on space
@@ -545,6 +590,7 @@
     updateStats();
     scheduleAutosave();
     doTypewriterScroll();
+    refreshOutlineIfOpen();
   });
   mdTextarea.addEventListener('keydown', e => {
     if (e.key !== 'Tab') return;
@@ -644,6 +690,8 @@
 
     if (e.key === '.') { e.preventDefault(); toggleFocusMode(); }
     if (e.key === '/' || e.key === '\\') { e.preventDefault(); toggleToolbar(); }
+    if (e.key === '[') { e.preventDefault(); setOutline(outlinePanel.hidden); }
+    if (e.key === ']') { e.preventDefault(); setScratchpad(scratchpadPanel.hidden); }
     if (e.key.toLowerCase() === 'l' && e.shiftKey) {
       e.preventDefault();
       const current = localStorage.getItem('bloggy-theme') || 'paper';
@@ -710,5 +758,9 @@
     if (window.EDITOR_TAGS) {
       window.EDITOR_TAGS.split(',').forEach(n => { if (n.trim()) addEditorTag(n); });
     }
+
+    // Side panels — default off; remember previous state per browser
+    if (localStorage.getItem('bloggy-outline')    === '1') setOutline(true);
+    if (localStorage.getItem('bloggy-scratchpad') === '1') setScratchpad(true);
   })();
 })();

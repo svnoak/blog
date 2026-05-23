@@ -40,6 +40,24 @@
                   onclick="setMode('markdown')">Markdown</button>
         </div>
 
+        <button type="button" id="outline-btn" class="zen-icon-btn" title="Outline (⌘[)" aria-pressed="false">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <circle cx="3" cy="4"  r="0.9" fill="currentColor" stroke="none"/>
+            <circle cx="3" cy="8"  r="0.9" fill="currentColor" stroke="none"/>
+            <circle cx="3" cy="12" r="0.9" fill="currentColor" stroke="none"/>
+            <line x1="6" y1="4"  x2="13" y2="4"/>
+            <line x1="6" y1="8"  x2="11" y2="8"/>
+            <line x1="6" y1="12" x2="12" y2="12"/>
+          </svg>
+        </button>
+
+        <button type="button" id="scratchpad-btn" class="zen-icon-btn" title="Scratchpad (⌘])" aria-pressed="false">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 2.5h7l3 3v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1z"/>
+            <path d="M10 2.5v3h3"/>
+          </svg>
+        </button>
+
         <button type="button" id="focus-btn" class="zen-icon-btn" title="Focus mode (⌘.)" aria-pressed="false">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
             <circle cx="8" cy="8" r="5"/>
@@ -127,6 +145,10 @@
 
   </div>
 
+  <!-- Side panels (populated by outline.js / scratchpad.js) -->
+  <aside id="outline-panel" class="side-panel outline chrome" hidden></aside>
+  <aside id="scratchpad-panel" class="side-panel scratchpad chrome" hidden></aside>
+
   <!-- Selection bubble (populated by bubble.js) -->
   <div id="zen-bubble"></div>
 
@@ -201,6 +223,8 @@
   <script src="/static/js/editor/md-utils.js?v={{assetVer}}"></script>
   <script src="/static/js/editor/bubble.js?v={{assetVer}}"></script>
   <script src="/static/js/editor/toolbar.js?v={{assetVer}}"></script>
+  <script src="/static/js/editor/outline.js?v={{assetVer}}"></script>
+  <script src="/static/js/editor/scratchpad.js?v={{assetVer}}"></script>
   <script src="/static/js/editor/app.js?v={{assetVer}}"></script>
 </body>
 </html>
