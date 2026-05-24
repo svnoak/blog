@@ -307,41 +307,57 @@
   }
 
   // ── Drag-to-pin: drop a scratchpad note onto an editor block ────────────────
-  function onEditorDragOver(e) {
-    if (!e.dataTransfer.types.includes('application/x-bloggy-note')) return;
-    if (currentMode !== 'wysiwyg') return;
-    let block = e.target;
-    while (block && block.parentNode !== wysiwyg) block = block.parentNode;
-    if (!block || block === wysiwyg) return;
-    if (!isPinnableBlock(block)) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
+  function clearPinTargets() {
     wysiwyg.querySelectorAll('.is-pin-target').forEach(el => el.classList.remove('is-pin-target'));
-    block.classList.add('is-pin-target');
-  }
-  function onEditorDragLeave(e) {
-    if (e.target === wysiwyg) {
-      wysiwyg.querySelectorAll('.is-pin-target').forEach(el => el.classList.remove('is-pin-target'));
-    }
-  }
-  function onEditorDrop(e) {
-    if (!e.dataTransfer.types.includes('application/x-bloggy-note')) return;
-    if (currentMode !== 'wysiwyg') return;
-    let block = e.target;
-    while (block && block.parentNode !== wysiwyg) block = block.parentNode;
-    if (!block || block === wysiwyg || !isPinnableBlock(block)) return;
-    e.preventDefault();
-    wysiwyg.querySelectorAll('.is-pin-target').forEach(el => el.classList.remove('is-pin-target'));
-    const noteId = e.dataTransfer.getData('application/x-bloggy-note');
-    if (noteId) pinNoteToBlock(noteId, block);
   }
   function isPinnableBlock(el) {
     const tag = el.tagName;
     return tag === 'P' || tag === 'H1' || tag === 'H2' || tag === 'H3' || tag === 'BLOCKQUOTE';
   }
-  wysiwyg.addEventListener('dragover',  onEditorDragOver);
-  wysiwyg.addEventListener('dragleave', onEditorDragLeave);
-  wysiwyg.addEventListener('drop',      onEditorDrop);
+  function findBlockFromEvent(e) {
+    let n = e.target;
+    while (n && n.parentNode !== wysiwyg) n = n.parentNode;
+    if (!n || n === wysiwyg) return null;
+    return n;
+  }
+
+  function onEditorDragOver(e) {
+    if (!scratchpadApi.getDraggedNoteId()) return;
+    if (currentMode !== 'wysiwyg') return;
+    const block = findBlockFromEvent(e);
+    if (!block || !isPinnableBlock(block)) { clearPinTargets(); return; }
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    clearPinTargets();
+    block.classList.add('is-pin-target');
+  }
+  function onEditorDrop(e) {
+    const noteId = scratchpadApi.getDraggedNoteId();
+    if (!noteId) return;
+    if (currentMode !== 'wysiwyg') return;
+    const block = findBlockFromEvent(e);
+    if (!block || !isPinnableBlock(block)) { clearPinTargets(); return; }
+    e.preventDefault();
+    clearPinTargets();
+    pinNoteToBlock(noteId, block);
+  }
+  wysiwyg.addEventListener('dragover', onEditorDragOver);
+  wysiwyg.addEventListener('drop',     onEditorDrop);
+
+  // While a note is being dragged, swallow the browser's default drop on
+  // anything that isn't an editor block. Without this, dropping on the title
+  // or tag input would let the browser insert the note's serialized payload
+  // and dropping on empty editor space would do nothing visible but leave
+  // the .is-pin-target outline behind.
+  window.addEventListener('dragover', (e) => {
+    if (!scratchpadApi.getDraggedNoteId()) return;
+    e.preventDefault();
+  });
+  window.addEventListener('drop', (e) => {
+    if (!scratchpadApi.getDraggedNoteId()) return;
+    e.preventDefault();
+  });
+  window.addEventListener('dragend', clearPinTargets);
 
   function setOutline(on) {
     outlinePanel.hidden = !on;

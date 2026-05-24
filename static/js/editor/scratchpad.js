@@ -121,6 +121,7 @@ function initScratchpad(panel, opts) {
 
   // ── Drag-and-drop reordering ─────────────────────────────────────────────────
   let dragIdx = -1;
+  let draggedNoteId = null;
   function clearDropTargets() {
     stack.querySelectorAll('.is-drop-target, .is-drop-target-after')
       .forEach(el => el.classList.remove('is-drop-target', 'is-drop-target-after'));
@@ -129,15 +130,19 @@ function initScratchpad(panel, opts) {
     node.draggable = true;
     node.addEventListener('dragstart', (e) => {
       dragIdx = idx;
+      draggedNoteId = noteId;
       node.classList.add('is-dragging');
-      try { e.dataTransfer.setData('text/plain', String(idx)); } catch (_) {}
+      // Custom MIME so editor-block drop targets can recognise our notes.
+      // Note: we intentionally do NOT set text/plain — without it, accidental
+      // drops on real inputs (title, tags) won't insert a stray value.
       try { e.dataTransfer.setData('application/x-bloggy-note', noteId); } catch (_) {}
-      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.effectAllowed = 'copyMove';
     });
     node.addEventListener('dragend', () => {
       node.classList.remove('is-dragging');
       clearDropTargets();
       dragIdx = -1;
+      draggedNoteId = null;
     });
     node.addEventListener('dragover', (e) => {
       if (dragIdx < 0 || dragIdx === idx) return;
@@ -306,5 +311,6 @@ function initScratchpad(panel, opts) {
     getNoteById,
     setAnchor,
     focusNote,
+    getDraggedNoteId: () => draggedNoteId,
   };
 }
