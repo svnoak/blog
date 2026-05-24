@@ -103,6 +103,42 @@ func LoadTagsForPosts(db *sql.DB, posts []*Post) error {
 	return rows.Err()
 }
 
+// TagCount is a tag with its associated published-post count.
+type TagCount struct {
+	Tag
+	Count int
+}
+
+// ListTagsWithPublishedCount returns every tag for the tenant alongside the
+// number of published posts that use it, ordered by count desc then name.
+// Tags with zero published posts are omitted.
+func ListTagsWithPublishedCount(db *sql.DB, tenantID int64) ([]TagCount, error) {
+	rows, err := db.Query(
+		`SELECT t.id, t.tenant_id, t.slug, t.name, COUNT(p.id) AS n
+		   FROM tags t
+		   JOIN post_tags pt ON pt.tag_id = t.id
+		   JOIN posts p      ON p.id     = pt.post_id
+		  WHERE t.tenant_id = ? AND p.status = 'published'
+		  GROUP BY t.id
+		 HAVING n > 0
+		  ORDER BY n DESC, t.name ASC`,
+		tenantID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []TagCount
+	for rows.Next() {
+		var tc TagCount
+		if err := rows.Scan(&tc.ID, &tc.TenantID, &tc.Slug, &tc.Name, &tc.Count); err != nil {
+			return nil, err
+		}
+		out = append(out, tc)
+	}
+	return out, rows.Err()
+}
+
 // GetTagBySlug returns a tag by tenant and slug.
 func GetTagBySlug(db *sql.DB, tenantID int64, slug string) (*Tag, error) {
 	var t Tag

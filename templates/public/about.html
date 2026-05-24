@@ -1,0 +1,76 @@
+{{define "public/about.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+  {{template "public-head" .}}
+  <title>About — {{.Tenant.Name}}</title>
+  <meta property="og:type" content="profile">
+  <meta property="og:title" content="About — {{.Tenant.Name}}">
+  <meta property="og:url" content="{{.BaseURL}}/about">
+</head>
+<body class="public-page" data-font="{{.Tenant.PubFont}}">
+  <div class="r-shell">
+    {{template "public-header" .}}
+    <main class="r-main">
+      <div class="r-about">
+        <header class="r-about-head">
+          {{if .Tenant.PortraitFilename}}
+          <img class="r-about-portrait" src="/static/images/portraits/{{.Tenant.PortraitFilename}}" alt="{{.Tenant.AboutName}}">
+          {{else}}
+          <div class="r-about-portrait r-about-portrait-empty" aria-hidden="true"></div>
+          {{end}}
+          <div class="r-about-head-text">
+            <h1 class="r-about-name">{{if .Tenant.AboutName}}{{.Tenant.AboutName}}{{else}}{{.Tenant.Name}}{{end}}</h1>
+            {{if .Tenant.AboutHandle}}<div class="r-about-handle">{{.Tenant.AboutHandle}}</div>{{end}}
+            {{if .Tenant.AboutSince}}<div class="r-about-since">{{.Tenant.AboutSince}}</div>{{end}}
+          </div>
+        </header>
+
+        {{if .AboutHTML}}
+        <section class="r-about-bio">{{safeHTML .AboutHTML}}</section>
+        {{end}}
+
+        {{if .TagCounts}}
+        <section class="r-about-block">
+          <h2 class="r-about-h2">What I write about</h2>
+          <div class="r-about-cloud">
+            {{range .TagCounts}}
+            <a class="r-cloud-chip" href="/tags/{{.Slug}}" style="--cloud-scale: {{.CloudScale}}">
+              <span class="r-chip-hash">#</span>{{.Name}}
+              <span class="r-chip-count">{{.Count}}</span>
+            </a>
+            {{end}}
+          </div>
+        </section>
+        {{end}}
+
+        <section class="r-about-block">
+          <h2 class="r-about-h2">Elsewhere</h2>
+          <ul class="r-about-list">
+            <li>
+              <a href="/feed.xml" class="r-about-link">
+                <span class="r-about-link-label">RSS feed</span>
+                <span class="r-about-link-sub">/feed.xml</span>
+              </a>
+            </li>
+            {{if .Tenant.AboutEmail}}
+            <li>
+              <a href="mailto:{{.Tenant.AboutEmail}}" class="r-about-link">
+                <span class="r-about-link-label">Email</span>
+                <span class="r-about-link-sub">{{.Tenant.AboutEmail}}</span>
+              </a>
+            </li>
+            {{end}}
+          </ul>
+        </section>
+
+        <footer class="r-about-foot">
+          <em>{{.Tenant.Name}}</em> · made slowly, on purpose.
+        </footer>
+      </div>
+    </main>
+    {{template "public-footer" .}}
+  </div>
+  {{template "public-theme-script" .}}
+</body>
+</html>
+{{end}}

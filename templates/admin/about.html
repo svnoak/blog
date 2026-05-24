@@ -1,0 +1,81 @@
+{{define "admin/about.html"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>About page — {{.Tenant.Name}}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  {{if .CustomFonts}}<style>{{range .CustomFonts}}
+  @font-face{font-family:'{{.Name}}';src:url('/static/fonts/user/{{.Filename}}') format('woff2')}{{end}}</style>{{end}}
+</head>
+<body class="admin-page" data-font="{{.Tenant.AdminFont}}">
+  {{template "admin-nav" .}}
+  <main class="admin-main">
+    <div class="section-header">
+      <h2 class="section-title">About page</h2>
+    </div>
+
+    {{if .Saved}}<p class="settings-success">Saved.</p>{{end}}
+
+    <form method="post" action="/admin/about">
+      <div class="settings-section">
+        <div class="settings-label">Display name</div>
+        <div class="settings-hint">Shown at the top of the About page. Leave blank to use the blog name.</div>
+        <input type="text" name="about_name" value="{{.Tenant.AboutName}}" class="settings-input" maxlength="100">
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Handle</div>
+        <div class="settings-hint">Optional. e.g. <code>@livwrites</code>.</div>
+        <input type="text" name="about_handle" value="{{.Tenant.AboutHandle}}" class="settings-input" maxlength="60">
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Contact email</div>
+        <div class="settings-hint">Shown under "Elsewhere" as a mailto link.</div>
+        <input type="email" name="about_email" value="{{.Tenant.AboutEmail}}" class="settings-input" maxlength="120">
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Since</div>
+        <div class="settings-hint">Optional one-liner under your name. e.g. <em>Writing here since 2023</em>.</div>
+        <input type="text" name="about_since" value="{{.Tenant.AboutSince}}" class="settings-input" maxlength="80">
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Bio (Markdown)</div>
+        <div class="settings-hint">The first paragraph gets a drop cap on the public page.</div>
+        <textarea name="about_md" rows="14" class="settings-input" style="width:100%;font-family:var(--zen-font-mono);font-size:0.85rem;line-height:1.6">{{.Tenant.AboutMD}}</textarea>
+      </div>
+
+      <button type="submit" class="btn-primary">Save</button>
+    </form>
+
+    <div class="settings-section" style="margin-top:2.5rem">
+      <div class="settings-label">Portrait</div>
+      <div class="settings-hint">Square image, .jpg / .png / .webp, up to 4 MB. Shown as a circle.</div>
+
+      {{if .Tenant.PortraitFilename}}
+      <div style="display:flex;align-items:center;gap:1rem;margin:0.75rem 0 1rem">
+        <img src="/static/images/portraits/{{.Tenant.PortraitFilename}}" alt="Current portrait" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:1px solid var(--zen-rule)">
+        <form method="post" action="/admin/about/portrait/delete" style="margin:0">
+          <button type="submit" class="btn-danger-sm">Remove portrait</button>
+        </form>
+      </div>
+      {{end}}
+
+      <form method="post" action="/admin/about/portrait" enctype="multipart/form-data" class="font-upload-form">
+        <input type="file" name="portrait" accept=".jpg,.jpeg,.png,.webp" required class="font-file-input">
+        <button type="submit" class="btn-secondary">Upload</button>
+      </form>
+      {{if .PortraitErr}}<p class="settings-error" style="margin-top:0.5rem">
+        {{if eq .PortraitErr "toobig"}}Portrait too large (max 4 MB).
+        {{else if eq .PortraitErr "type"}}Only JPEG, PNG, or WebP images are accepted.
+        {{else if eq .PortraitErr "save"}}Could not save portrait.
+        {{else}}No file received.{{end}}
+      </p>{{end}}
+    </div>
+  </main>
+</body>
+</html>
+{{end}}

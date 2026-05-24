@@ -25,6 +25,39 @@ type Post struct {
 
 func (p *Post) IsPublished() bool { return p.Status == "published" }
 
+// ReadingMinutes is a coarse estimate based on word count (200 wpm, floor of 1).
+func (p *Post) ReadingMinutes() int {
+	words := len(strings.Fields(p.Content))
+	mins := words / 200
+	if mins < 1 {
+		mins = 1
+	}
+	return mins
+}
+
+// Excerpt returns a plain-text excerpt of the post's Markdown source, trimmed
+// to roughly the given number of characters with an ellipsis if cut.
+func (p *Post) Excerpt(maxLen int) string {
+	plain := strings.Join(strings.Fields(p.Content), " ")
+	// Strip a leading H1 if the author already gave the post a title in-body.
+	if strings.HasPrefix(plain, "# ") {
+		if i := strings.Index(plain, " "); i != -1 {
+			plain = plain[i+1:]
+			if j := strings.Index(plain, "  "); j != -1 {
+				plain = plain[j+2:]
+			}
+		}
+	}
+	if len(plain) <= maxLen {
+		return plain
+	}
+	cut := plain[:maxLen]
+	if sp := strings.LastIndex(cut, " "); sp > maxLen/2 {
+		cut = cut[:sp]
+	}
+	return cut + "…"
+}
+
 func (p *Post) TagsCSV() string {
 	names := make([]string, len(p.Tags))
 	for i, t := range p.Tags {

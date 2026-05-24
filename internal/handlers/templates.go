@@ -45,6 +45,12 @@ func LoadTemplates(dir string) (*Templates, error) {
 		"formatDateVal": func(t time.Time) string {
 			return t.Format("2 January 2006")
 		},
+		"isoDate": func(t *time.Time) string {
+			if t == nil {
+				return ""
+			}
+			return t.Format("2006-01-02")
+		},
 		"safeHTML": func(s string) template.HTML {
 			return template.HTML(s)
 		},

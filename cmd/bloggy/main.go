@@ -79,6 +79,7 @@ func runServe(args []string) {
 
 	// Public routes
 	r.Get("/", publicH.Index)
+	r.Get("/about", publicH.About)
 	r.Get("/posts/{slug}", publicH.ShowPost)
 	r.Get("/tags/{slug}", publicH.TagIndex)
 	r.Get("/feed.xml", publicH.Feed)
@@ -120,6 +121,10 @@ func runServe(args []string) {
 		r.Post("/admin/settings", adminH.SettingsPost)
 		r.Post("/admin/settings/fonts", adminH.FontUpload)
 		r.Post("/admin/settings/fonts/{id}/delete", adminH.FontDelete)
+		r.Get("/admin/about", adminH.AboutGet)
+		r.Post("/admin/about", adminH.AboutPost)
+		r.Post("/admin/about/portrait", adminH.PortraitUpload)
+		r.Post("/admin/about/portrait/delete", adminH.PortraitDelete)
 		r.Post("/admin/upload/image", adminH.ImageUpload)
 	})
 

@@ -1,82 +1,84 @@
 {{define "public/index.html"}}<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {{template "public-head" .}}
   <title>{{.Tenant.Name}}</title>
-  <link rel="stylesheet" href="/static/css/style.css">
-  <link rel="alternate" type="application/atom+xml" title="{{.Tenant.Name}}" href="/feed.xml">
   <meta property="og:type" content="website">
   <meta property="og:title" content="{{.Tenant.Name}}">
   <meta property="og:url" content="{{.BaseURL}}">
-  {{if .CustomFonts}}<style>{{range .CustomFonts}}
-  @font-face{font-family:'{{.Name}}';src:url('/static/fonts/user/{{.Filename}}') format('woff2')}
-  body[data-font="{{.Name}}"]{--zen-font:'{{.Name}}',Georgia,serif}{{end}}</style>{{end}}
 </head>
 <body class="public-page" data-font="{{.Tenant.PubFont}}">
-  <header class="public-header">
-    <a href="/" class="site-name">{{.Tenant.Name}}</a>
-    <button class="pub-theme-btn" id="pub-theme-btn" title="Toggle theme" aria-label="Toggle theme">
-      <svg id="pub-theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
-      <svg id="pub-theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-    </button>
-  </header>
-  <main class="public-main">
-    {{if .Posts}}
-    <ul class="post-list">
-      {{range .Posts}}
-      <li class="post-list-item">
-        <a href="/posts/{{.Slug}}" class="post-list-title">{{.Title}}</a>
-        <div class="post-list-meta">
-          Written by {{.AuthorName}} on {{formatDate .PublishedAt}}
+  <div class="r-shell">
+    {{template "public-header" .}}
+    <main class="r-main">
+      {{if .TagCounts}}
+      <div class="r-filter" role="region" aria-label="Filter by tag">
+        <div class="r-filter-row">
+          <a class="r-chip{{if not .ActiveTag}} is-active{{end}}" href="/">
+            All
+            <span class="r-chip-count">{{.TotalPosts}}</span>
+          </a>
+          {{range .TagCounts}}
+          <a class="r-chip{{if eq $.ActiveTag .Slug}} is-active{{end}}" href="/tags/{{.Slug}}">
+            <span class="r-chip-hash">#</span>{{.Name}}
+            <span class="r-chip-count">{{.Count}}</span>
+          </a>
+          {{end}}
         </div>
-        {{if .Tags}}<div class="post-list-tags">{{range .Tags}}<a href="/tags/{{.Slug}}" class="tag-chip">{{.Name}}</a>{{end}}</div>{{end}}
-      </li>
+        {{if .ActiveTag}}
+        <div class="r-filter-status">
+          Showing {{len .Posts}} post{{if ne (len .Posts) 1}}s{{end}} tagged
+          <strong>#{{.ActiveTagName}}</strong> ·
+          <a class="r-link" href="/">clear</a>
+        </div>
+        {{end}}
+      </div>
       {{end}}
-    </ul>
-    {{if or .HasPrev .HasNext}}
-    <nav class="pagination">
-      {{if .HasPrev}}<a href="/?page={{.PrevPage}}" class="pagination-link">← Newer</a>{{end}}
-      {{if .HasNext}}<a href="/?page={{.NextPage}}" class="pagination-link">Older →</a>{{end}}
-    </nav>
-    {{end}}
-    {{else}}
-    <p class="empty-state">Nothing here yet.</p>
-    {{end}}
-  </main>
-  <script>
-    (function() {
-      var LIGHT = "{{.Tenant.LightTheme}}" || 'paper';
-      var DARK  = "{{.Tenant.DarkTheme}}"  || 'ember';
-      var iconSun  = document.getElementById('pub-theme-icon-sun');
-      var iconMoon = document.getElementById('pub-theme-icon-moon');
 
-      function prefersDark() { return window.matchMedia('(prefers-color-scheme: dark)').matches; }
+      {{if .Posts}}
+      <ol class="r-cards" aria-label="Posts">
+        {{range .Posts}}
+        <li class="r-card">
+          <a class="r-card-link" href="/posts/{{.Slug}}" aria-label="{{.Title}}">
+            <h2 class="r-card-title">{{.Title}}</h2>
+            <p class="r-card-excerpt">{{.Excerpt 220}}</p>
+          </a>
+          <div class="r-card-meta">
+            <span class="r-meta">
+              <time datetime="{{isoDate .PublishedAt}}">{{formatDate .PublishedAt}}</time>
+              <span class="r-meta-sep">·</span>
+              <span>{{.ReadingMinutes}} min read</span>
+            </span>
+            {{if .Tags}}
+            <span class="r-post-tags">
+              {{range .Tags}}<a class="r-tag-inline" href="/tags/{{.Slug}}">#{{.Name}}</a>{{end}}
+            </span>
+            {{end}}
+          </div>
+        </li>
+        {{end}}
+      </ol>
 
-      function applyPref(pref) {
-        var t = pref === 'dark' ? DARK : LIGHT;
-        document.body.setAttribute('data-theme', t);
-        iconSun.style.display  = pref === 'light' ? 'none' : '';
-        iconMoon.style.display = pref === 'dark'  ? 'none' : '';
-      }
-
-      var stored = localStorage.getItem('bloggy-theme-pref');
-      applyPref(stored || (prefersDark() ? 'dark' : 'light'));
-
-      document.getElementById('pub-theme-btn').addEventListener('click', function() {
-        var isDark = document.body.getAttribute('data-theme') === DARK;
-        var next = isDark ? 'light' : 'dark';
-        localStorage.setItem('bloggy-theme-pref', next);
-        applyPref(next);
-      });
-
-      if (!stored) {
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
-          if (!localStorage.getItem('bloggy-theme-pref')) applyPref(e.matches ? 'dark' : 'light');
-        });
-      }
-    })();
-  </script>
+      {{if or .HasPrev .HasNext}}
+      <nav class="r-pagination" aria-label="Pagination">
+        {{if .HasPrev}}<a href="{{.PrevURL}}" class="r-link">← Newer</a>{{else}}<span></span>{{end}}
+        {{if .HasNext}}<a href="{{.NextURL}}" class="r-link">Older →</a>{{end}}
+      </nav>
+      {{end}}
+      {{else}}
+      <div class="r-empty">
+        {{if .ActiveTag}}
+          <p>No posts tagged <strong>#{{.ActiveTagName}}</strong> yet.</p>
+          <a class="r-link" href="/">Show everything</a>
+        {{else}}
+          <p>Nothing here yet.</p>
+        {{end}}
+      </div>
+      {{end}}
+    </main>
+    {{template "public-footer" .}}
+  </div>
+  {{template "public-theme-script" .}}
 </body>
 </html>
 {{end}}

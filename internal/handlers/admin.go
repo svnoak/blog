@@ -566,6 +566,126 @@ func (h *AdminHandler) AccountPost(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin/account?success=1", http.StatusFound)
 }
 
+// ── About page editor ─────────────────────────────────────────────────────────
+
+func (h *AdminHandler) AboutGet(w http.ResponseWriter, r *http.Request) {
+	tenant := middleware.TenantFromCtx(r.Context())
+	user, _ := h.currentUser(r)
+	h.Tmpls.Render(w, "admin/about.html", map[string]any{
+		"Tenant":      tenant,
+		"User":        user,
+		"CustomFonts": h.customFonts(tenant.ID),
+		"PortraitErr": r.URL.Query().Get("portrait_error"),
+		"Saved":       r.URL.Query().Get("saved") == "1",
+	})
+}
+
+func (h *AdminHandler) AboutPost(w http.ResponseWriter, r *http.Request) {
+	tenant := middleware.TenantFromCtx(r.Context())
+	name := strings.TrimSpace(r.FormValue("about_name"))
+	handle := strings.TrimSpace(r.FormValue("about_handle"))
+	email := strings.TrimSpace(r.FormValue("about_email"))
+	since := strings.TrimSpace(r.FormValue("about_since"))
+	md := r.FormValue("about_md")
+
+	// Light caps — keep the column reasonable in size.
+	if len(md) > 50000 {
+		md = md[:50000]
+	}
+	if len(name) > 100 {
+		name = name[:100]
+	}
+	if len(handle) > 60 {
+		handle = handle[:60]
+	}
+	if len(email) > 120 {
+		email = email[:120]
+	}
+	if len(since) > 80 {
+		since = since[:80]
+	}
+
+	if err := middleware.UpdateTenantAbout(h.DB, tenant.ID, name, handle, email, since, md); err != nil {
+		http.Error(w, "could not save", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/admin/about?saved=1", http.StatusFound)
+}
+
+var portraitErrorMsg = map[string]string{
+	"toobig": "Portrait too large (max 4 MB).",
+	"type":   "Only JPEG, PNG, or WebP images are accepted.",
+	"file":   "No file received.",
+	"save":   "Could not save portrait.",
+}
+
+func (h *AdminHandler) PortraitUpload(w http.ResponseWriter, r *http.Request) {
+	tenant := middleware.TenantFromCtx(r.Context())
+
+	r.Body = http.MaxBytesReader(w, r.Body, 4<<20)
+	if err := r.ParseMultipartForm(4 << 20); err != nil {
+		http.Redirect(w, r, "/admin/about?portrait_error=toobig", http.StatusFound)
+		return
+	}
+
+	file, header, err := r.FormFile("portrait")
+	if err != nil {
+		http.Redirect(w, r, "/admin/about?portrait_error=file", http.StatusFound)
+		return
+	}
+	defer file.Close()
+
+	buf := make([]byte, 512)
+	n, _ := file.Read(buf)
+	mime := http.DetectContentType(buf[:n])
+	if seeker, ok := file.(interface{ Seek(int64, int) (int64, error) }); ok {
+		seeker.Seek(0, 0)
+	}
+
+	ext := allowedImageTypes[mime]
+	if ext == "" || ext == ".gif" {
+		ext = strings.ToLower(filepath.Ext(header.Filename))
+		if ext == ".jpeg" {
+			ext = ".jpg"
+		}
+	}
+	if ext != ".jpg" && ext != ".png" && ext != ".webp" {
+		http.Redirect(w, r, "/admin/about?portrait_error=type", http.StatusFound)
+		return
+	}
+
+	filename := fmt.Sprintf("%d_%s%s", tenant.ID, uuid.New().String(), ext)
+	dest := filepath.Join("static", "images", "portraits", filename)
+
+	out, err := os.Create(dest)
+	if err != nil {
+		http.Redirect(w, r, "/admin/about?portrait_error=save", http.StatusFound)
+		return
+	}
+	defer out.Close()
+	if _, err := io.Copy(out, file); err != nil {
+		os.Remove(dest)
+		http.Redirect(w, r, "/admin/about?portrait_error=save", http.StatusFound)
+		return
+	}
+
+	// Replace any previous portrait so we don't leak files.
+	if tenant.PortraitFilename != "" {
+		os.Remove(filepath.Join("static", "images", "portraits", tenant.PortraitFilename))
+	}
+	middleware.UpdateTenantPortrait(h.DB, tenant.ID, filename)
+	http.Redirect(w, r, "/admin/about?saved=1", http.StatusFound)
+}
+
+func (h *AdminHandler) PortraitDelete(w http.ResponseWriter, r *http.Request) {
+	tenant := middleware.TenantFromCtx(r.Context())
+	if tenant.PortraitFilename != "" {
+		os.Remove(filepath.Join("static", "images", "portraits", tenant.PortraitFilename))
+	}
+	middleware.UpdateTenantPortrait(h.DB, tenant.ID, "")
+	http.Redirect(w, r, "/admin/about", http.StatusFound)
+}
+
 func (h *AdminHandler) UserDelete(w http.ResponseWriter, r *http.Request) {
 	tenant := middleware.TenantFromCtx(r.Context())
 	self, _ := h.currentUser(r)

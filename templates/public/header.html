@@ -1,0 +1,41 @@
+{{define "public-header"}}
+<header class="r-head">
+  <div class="r-head-inner">
+    <a class="r-brand" href="/">
+      <span class="r-brand-dot" aria-hidden="true"></span>
+      <span class="r-brand-word">{{.Tenant.Name}}</span>
+    </a>
+    <nav class="r-nav" id="r-nav" aria-label="Primary">
+      <a href="/"      class="r-nav-link{{if eq .NavActive "home"}} is-active{{end}}">Home</a>
+      <a href="/about" class="r-nav-link{{if eq .NavActive "about"}} is-active{{end}}">About</a>
+    </nav>
+    <div class="r-head-actions">
+      <a href="/feed.xml" class="r-icon-btn" title="RSS feed" aria-label="RSS feed">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M3 4a9 9 0 0 1 9 9M3 8a5 5 0 0 1 5 5"/>
+          <circle cx="3.5" cy="12.5" r=".9" fill="currentColor"/>
+        </svg>
+      </a>
+      <button class="r-icon-btn" id="pub-theme-btn" title="Toggle theme" aria-label="Toggle theme">
+        <svg id="pub-theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
+        <svg id="pub-theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <button class="r-icon-btn r-nav-toggle" id="r-nav-toggle" aria-label="Menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+{{end}}
+
+{{define "public-footer"}}
+<footer class="r-foot">
+  <div class="r-foot-inner">
+    <span>© {{.Year}} {{.Tenant.Name}}</span>
+    <span class="r-foot-sep">·</span>
+    <a href="/about">About</a>
+    <span class="r-foot-sep">·</span>
+    <a href="/feed.xml">RSS</a>
+  </div>
+</footer>
+{{end}}

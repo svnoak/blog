@@ -1,0 +1,55 @@
+{{define "public-head"}}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/static/css/style.css">
+<link rel="alternate" type="application/atom+xml" title="{{.Tenant.Name}}" href="/feed.xml">
+{{if .CustomFonts}}<style>{{range .CustomFonts}}
+@font-face{font-family:'{{.Name}}';src:url('/static/fonts/user/{{.Filename}}') format('woff2')}
+body[data-font="{{.Name}}"]{--zen-font:'{{.Name}}',Georgia,serif}{{end}}</style>{{end}}
+{{end}}
+
+{{define "public-theme-script"}}
+<script>
+  (function() {
+    var LIGHT = "{{.Tenant.LightTheme}}" || 'paper';
+    var DARK  = "{{.Tenant.DarkTheme}}"  || 'ember';
+    var btn   = document.getElementById('pub-theme-btn');
+    var iconSun  = document.getElementById('pub-theme-icon-sun');
+    var iconMoon = document.getElementById('pub-theme-icon-moon');
+
+    function prefersDark() { return window.matchMedia('(prefers-color-scheme: dark)').matches; }
+    function applyPref(pref) {
+      var t = pref === 'dark' ? DARK : LIGHT;
+      document.body.setAttribute('data-theme', t);
+      if (iconSun)  iconSun.style.display  = pref === 'light' ? 'none' : '';
+      if (iconMoon) iconMoon.style.display = pref === 'dark'  ? 'none' : '';
+    }
+
+    var stored = localStorage.getItem('bloggy-theme-pref');
+    applyPref(stored || (prefersDark() ? 'dark' : 'light'));
+
+    if (btn) btn.addEventListener('click', function() {
+      var isDark = document.body.getAttribute('data-theme') === DARK;
+      var next = isDark ? 'light' : 'dark';
+      localStorage.setItem('bloggy-theme-pref', next);
+      applyPref(next);
+    });
+
+    if (!stored) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+        if (!localStorage.getItem('bloggy-theme-pref')) applyPref(e.matches ? 'dark' : 'light');
+      });
+    }
+
+    var navToggle = document.getElementById('r-nav-toggle');
+    var nav       = document.getElementById('r-nav');
+    if (navToggle && nav) {
+      navToggle.addEventListener('click', function() {
+        var open = nav.classList.toggle('is-open');
+        navToggle.classList.toggle('is-open', open);
+        navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    }
+  })();
+</script>
+{{end}}

@@ -9,14 +9,20 @@ import (
 )
 
 type Tenant struct {
-	ID         int64
-	Name       string
-	Domain     string
-	LightTheme string
-	DarkTheme  string
-	PubFont    string
-	AdminFont  string
-	CreatedAt  time.Time
+	ID               int64
+	Name             string
+	Domain           string
+	LightTheme       string
+	DarkTheme        string
+	PubFont          string
+	AdminFont        string
+	AboutName        string
+	AboutHandle      string
+	AboutEmail       string
+	AboutSince       string
+	AboutMD          string
+	PortraitFilename string
+	CreatedAt        time.Time
 }
 
 type CustomFont struct {
@@ -47,8 +53,13 @@ func UpsertTenant(db *sql.DB, name, domain string) (*Tenant, error) {
 func getTenantByDomain(db *sql.DB, domain string) (*Tenant, error) {
 	var t Tenant
 	err := db.QueryRow(
-		`SELECT id, name, domain, light_theme, dark_theme, pub_font, admin_font, created_at FROM tenants WHERE domain = ?`, domain,
-	).Scan(&t.ID, &t.Name, &t.Domain, &t.LightTheme, &t.DarkTheme, &t.PubFont, &t.AdminFont, &t.CreatedAt)
+		`SELECT id, name, domain, light_theme, dark_theme, pub_font, admin_font,
+		        about_name, about_handle, about_email, about_since, about_md, portrait_filename,
+		        created_at
+		   FROM tenants WHERE domain = ?`, domain,
+	).Scan(&t.ID, &t.Name, &t.Domain, &t.LightTheme, &t.DarkTheme, &t.PubFont, &t.AdminFont,
+		&t.AboutName, &t.AboutHandle, &t.AboutEmail, &t.AboutSince, &t.AboutMD, &t.PortraitFilename,
+		&t.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -104,6 +115,21 @@ func DeleteCustomFont(db *sql.DB, tenantID, fontID int64) (string, error) {
 	}
 	_, err = db.Exec(`DELETE FROM custom_fonts WHERE id = ? AND tenant_id = ?`, fontID, tenantID)
 	return filename, err
+}
+
+func UpdateTenantAbout(db *sql.DB, tenantID int64, name, handle, email, since, md string) error {
+	_, err := db.Exec(
+		`UPDATE tenants
+		    SET about_name = ?, about_handle = ?, about_email = ?, about_since = ?, about_md = ?
+		  WHERE id = ?`,
+		name, handle, email, since, md, tenantID,
+	)
+	return err
+}
+
+func UpdateTenantPortrait(db *sql.DB, tenantID int64, filename string) error {
+	_, err := db.Exec(`UPDATE tenants SET portrait_filename = ? WHERE id = ?`, filename, tenantID)
+	return err
 }
 
 func UpdateTenantThemes(db *sql.DB, tenantID int64, lightTheme, darkTheme string) error {

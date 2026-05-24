@@ -97,6 +97,10 @@ func plainExcerpt(htmlContent string, maxLen int) string {
 const postsPerPage = 10
 
 func (h *PublicHandler) Index(w http.ResponseWriter, r *http.Request) {
+	h.renderHome(w, r, "", "")
+}
+
+func (h *PublicHandler) renderHome(w http.ResponseWriter, r *http.Request, activeTagSlug, activeTagName string) {
 	tenant := middleware.TenantFromCtx(r.Context())
 
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
@@ -104,7 +108,15 @@ func (h *PublicHandler) Index(w http.ResponseWriter, r *http.Request) {
 		page = 1
 	}
 
-	total, err := models.CountPublishedPosts(h.DB, tenant.ID)
+	var (
+		total int
+		err   error
+	)
+	if activeTagSlug == "" {
+		total, err = models.CountPublishedPosts(h.DB, tenant.ID)
+	} else {
+		total, err = models.CountPublishedPostsByTag(h.DB, tenant.ID, activeTagSlug)
+	}
 	if err != nil {
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return
@@ -118,24 +130,49 @@ func (h *PublicHandler) Index(w http.ResponseWriter, r *http.Request) {
 		page = totalPages
 	}
 
-	posts, err := models.ListPublishedPostsPaged(h.DB, tenant.ID, (page-1)*postsPerPage, postsPerPage)
+	var posts []*models.Post
+	if activeTagSlug == "" {
+		posts, err = models.ListPublishedPostsPaged(h.DB, tenant.ID, (page-1)*postsPerPage, postsPerPage)
+	} else {
+		posts, err = models.ListPublishedPostsByTagPaged(h.DB, tenant.ID, activeTagSlug, (page-1)*postsPerPage, postsPerPage)
+	}
 	if err != nil {
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return
 	}
 	models.LoadTagsForPosts(h.DB, posts)
 
+	tagCounts, _ := models.ListTagsWithPublishedCount(h.DB, tenant.ID)
+
+	totalAll, _ := models.CountPublishedPosts(h.DB, tenant.ID)
+
+	basePath := "/"
+	if activeTagSlug != "" {
+		basePath = "/tags/" + activeTagSlug
+	}
+	prevURL := basePath
+	if page > 2 {
+		prevURL = fmt.Sprintf("%s?page=%d", basePath, page-1)
+	}
+	nextURL := fmt.Sprintf("%s?page=%d", basePath, page+1)
+
 	h.Tmpls.Render(w, "public/index.html", map[string]any{
-		"Tenant":      tenant,
-		"Posts":       posts,
-		"CustomFonts": h.customFonts(tenant.ID),
-		"BaseURL":     siteBaseURL(r),
-		"Page":        page,
-		"TotalPages":  totalPages,
-		"HasPrev":     page > 1,
-		"HasNext":     page < totalPages,
-		"PrevPage":    page - 1,
-		"NextPage":    page + 1,
+		"Tenant":        tenant,
+		"Posts":         posts,
+		"CustomFonts":   h.customFonts(tenant.ID),
+		"BaseURL":       siteBaseURL(r),
+		"NavActive":     "home",
+		"Year":          time.Now().Year(),
+		"TagCounts":     tagCounts,
+		"TotalPosts":    totalAll,
+		"ActiveTag":     activeTagSlug,
+		"ActiveTagName": activeTagName,
+		"Page":          page,
+		"TotalPages":    totalPages,
+		"HasPrev":       page > 1,
+		"HasNext":       page < totalPages,
+		"PrevURL":       prevURL,
+		"NextURL":       nextURL,
 	})
 }
 
@@ -172,6 +209,8 @@ func (h *PublicHandler) ShowPost(w http.ResponseWriter, r *http.Request) {
 		"LoggedIn":    loggedIn,
 		"BaseURL":     base,
 		"Excerpt":     plainExcerpt(buf.String(), 200),
+		"NavActive":   "",
+		"Year":        time.Now().Year(),
 	})
 }
 
@@ -255,44 +294,45 @@ func (h *PublicHandler) TagIndex(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	h.renderHome(w, r, tag.Slug, tag.Name)
+}
 
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	if page < 1 {
-		page = 1
+// aboutTagCount augments a TagCount with a CSS cloud-scale value for the
+// "What I write about" cloud on the About page.
+type aboutTagCount struct {
+	models.TagCount
+	CloudScale string
+}
+
+func (h *PublicHandler) About(w http.ResponseWriter, r *http.Request) {
+	tenant := middleware.TenantFromCtx(r.Context())
+
+	tagCounts, _ := models.ListTagsWithPublishedCount(h.DB, tenant.ID)
+	cloud := make([]aboutTagCount, len(tagCounts))
+	for i, tc := range tagCounts {
+		n := tc.Count
+		if n > 5 {
+			n = 5
+		}
+		scale := 0.85 + float64(n)*0.08
+		cloud[i] = aboutTagCount{TagCount: tc, CloudScale: fmt.Sprintf("%.2f", scale)}
 	}
 
-	total, err := models.CountPublishedPostsByTag(h.DB, tenant.ID, tagSlug)
-	if err != nil {
-		http.Error(w, "server error", http.StatusInternalServerError)
-		return
+	var aboutHTML string
+	if tenant.AboutMD != "" {
+		var buf bytes.Buffer
+		if err := h.md.Convert([]byte(tenant.AboutMD), &buf); err == nil {
+			aboutHTML = buf.String()
+		}
 	}
 
-	totalPages := (total + postsPerPage - 1) / postsPerPage
-	if totalPages < 1 {
-		totalPages = 1
-	}
-	if page > totalPages {
-		page = totalPages
-	}
-
-	posts, err := models.ListPublishedPostsByTagPaged(h.DB, tenant.ID, tagSlug, (page-1)*postsPerPage, postsPerPage)
-	if err != nil {
-		http.Error(w, "server error", http.StatusInternalServerError)
-		return
-	}
-	models.LoadTagsForPosts(h.DB, posts)
-
-	h.Tmpls.Render(w, "public/tag.html", map[string]any{
+	h.Tmpls.Render(w, "public/about.html", map[string]any{
 		"Tenant":      tenant,
-		"Tag":         tag,
-		"Posts":       posts,
 		"CustomFonts": h.customFonts(tenant.ID),
 		"BaseURL":     siteBaseURL(r),
-		"Page":        page,
-		"TotalPages":  totalPages,
-		"HasPrev":     page > 1,
-		"HasNext":     page < totalPages,
-		"PrevPage":    page - 1,
-		"NextPage":    page + 1,
+		"NavActive":   "about",
+		"Year":        time.Now().Year(),
+		"TagCounts":   cloud,
+		"AboutHTML":   aboutHTML,
 	})
 }
