@@ -227,6 +227,8 @@
     isOrphan:       isOrphanNote,
     canPin:         canPinNow,
     onNotesChanged: () => marginNotesApi && marginNotesApi.reposition(),
+    endpoint:       POST_ID > 0 ? `/admin/posts/${POST_ID}/scratchpad` : null,
+    getPostId:      () => POST_ID,
   });
 
   // Margin notes overlay

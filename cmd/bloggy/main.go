@@ -108,6 +108,8 @@ func runServe(args []string) {
 		r.Post("/admin/posts/{id}/publish", adminH.PublishPost)
 		r.Post("/admin/posts/{id}/unpublish", adminH.UnpublishPost)
 		r.Post("/admin/posts/{id}/delete", adminH.DeletePost)
+		r.Get("/admin/posts/{id}/scratchpad", adminH.ScratchpadList)
+		r.Put("/admin/posts/{id}/scratchpad", adminH.ScratchpadReplace)
 		r.Get("/admin/users", adminH.UserList)
 		r.Get("/admin/users/new", adminH.UserNew)
 		r.Post("/admin/users", adminH.UserCreate)

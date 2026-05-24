@@ -1,7 +1,7 @@
 // scratchpad.js — Post-it style notes that live next to the document.
-// Persisted separately in localStorage so they don't follow the post on export.
+// Persisted server-side per (post, user) — they don't follow the post on export.
 //
-// Call initScratchpad(panelEl, { onClose })
+// Call initScratchpad(panelEl, { onClose, endpoint, getPostId, ... })
 
 function initScratchpad(panel, opts) {
   const onClose         = (opts && opts.onClose)         || function () {};
@@ -9,6 +9,8 @@ function initScratchpad(panel, opts) {
   const isOrphan        = (opts && opts.isOrphan)        || function () { return false; };
   const canPin          = (opts && opts.canPin)          || function () { return true; };
   const onNotesChanged  = (opts && opts.onNotesChanged)  || function () {};
+  const endpoint        = (opts && opts.endpoint)        || null;   // null = ephemeral (new-post)
+  const getPostId       = (opts && opts.getPostId)       || function () { return 0; };
 
   const COLORS = [
     { id: 'amber', bg: '#f5d97a', ink: '#3a2a08' },
@@ -20,37 +22,87 @@ function initScratchpad(panel, opts) {
   ];
   const colorOf = (id) => COLORS.find(c => c.id === id) || COLORS[0];
 
-  const KEY = 'bloggy.scratchpad.v1';
-  function load() {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : null;
-    } catch (_) { return null; }
-  }
-  function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(notes)); } catch (_) {}
-    onNotesChanged();
-  }
+  let notes = [];
+  let loaded = endpoint === null;     // ephemeral mode is "loaded" immediately
+  let saveTimer = null;
+  let pendingSave = false;
+  let inFlight = false;
+
   function nid() { return 'n_' + Math.random().toString(36).slice(2, 9); }
 
-  function seed() {
-    return [
-      { id: nid(), color: 'amber', tilt: -1.2, text: 'An anchor thought.\n\nThe work isn’t to write something good. The work is to sit down.' },
-      { id: nid(), color: 'mint',  tilt:  0.8, text: '— mention the 4–5pm hour\n— the chipped cup detail\n— the doorway metaphor' },
-      { id: nid(), color: 'peach', tilt: -0.5, text: 'Cut?\n\nThe paragraph about the fridge. Too literal.' },
-    ];
+  // Server <-> in-memory shape conversion.
+  //   server:  { id, color, tilt, text, anchorId? }
+  //   memory:  { id, color, tilt, text, anchor?: { postId, anchorId } }
+  function fromServer(arr) {
+    if (!Array.isArray(arr)) return [];
+    const pid = getPostId();
+    return arr.map(n => {
+      const note = {
+        id:    n.id,
+        color: n.color || 'amber',
+        tilt:  typeof n.tilt === 'number' ? n.tilt : 0,
+        text:  n.text  || '',
+      };
+      if (n.anchorId) note.anchor = { postId: pid, anchorId: n.anchorId };
+      return note;
+    });
+  }
+  function toServer(arr) {
+    return arr.map(n => {
+      const out = { id: n.id, color: n.color, tilt: n.tilt, text: n.text };
+      if (n.anchor && n.anchor.anchorId) out.anchorId = n.anchor.anchorId;
+      return out;
+    });
   }
 
-  let notes = load();
-  if (notes === null) notes = seed();
+  async function loadFromServer() {
+    if (!endpoint) { loaded = true; return; }
+    try {
+      const res = await fetch(endpoint, { credentials: 'same-origin' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      notes = fromServer(data);
+    } catch (err) {
+      console.warn('scratchpad: load failed', err);
+      notes = [];
+    }
+    loaded = true;
+  }
 
+  async function flushSave() {
+    if (!endpoint) return;
+    if (inFlight) { pendingSave = true; return; }
+    inFlight = true;
+    pendingSave = false;
+    try {
+      const res = await fetch(endpoint, {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(toServer(notes)),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+    } catch (err) {
+      console.warn('scratchpad: save failed', err);
+    } finally {
+      inFlight = false;
+      if (pendingSave) flushSave();
+    }
+  }
+
+  function save() {
+    onNotesChanged();
+    if (!endpoint) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flushSave, 700);
+  }
+
+  const canEdit = endpoint !== null;
   panel.innerHTML = `
     <header class="side-head">
       <span class="side-title">Scratchpad</span>
       <div class="side-head-actions">
-        <button type="button" class="side-action" id="sp-add-note" title="New note">+ Note</button>
+        <button type="button" class="side-action" id="sp-add-note" title="${canEdit ? 'New note' : 'Save the post once before jotting notes'}" ${canEdit ? '' : 'disabled'}>+ Note</button>
         <button type="button" class="side-x" title="Close" aria-label="Close scratchpad">×</button>
       </div>
     </header>
@@ -62,7 +114,7 @@ function initScratchpad(panel, opts) {
   const addBtn   = panel.querySelector('#sp-add-note');
   const closeBtn = panel.querySelector('.side-x');
 
-  addBtn.addEventListener('click', addNote);
+  if (canEdit) addBtn.addEventListener('click', addNote);
   closeBtn.addEventListener('click', onClose);
 
   function addNote() {
@@ -172,18 +224,26 @@ function initScratchpad(panel, opts) {
 
   function render() {
     stack.innerHTML = '';
+    if (!loaded) {
+      const wait = document.createElement('div');
+      wait.className = 'side-empty';
+      wait.innerHTML = '<p>Loading notes…</p>';
+      stack.appendChild(wait);
+      return;
+    }
     if (notes.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'side-empty';
+      const sub = endpoint
+        ? '<span class="side-link" id="sp-add-link">Add one</span> when a thought wants somewhere to land.'
+        : 'Save the post once before jotting notes here.';
       empty.innerHTML = `
         <p>No notes yet.</p>
-        <p class="side-empty-sub">
-          <span class="side-link" id="sp-add-link">Add one</span> when a thought wants somewhere to land.
-        </p>
+        <p class="side-empty-sub">${sub}</p>
       `;
       stack.appendChild(empty);
       const lk = empty.querySelector('#sp-add-link');
-      lk.addEventListener('click', addNote);
+      if (lk) lk.addEventListener('click', addNote);
       return;
     }
 
@@ -306,6 +366,14 @@ function initScratchpad(panel, opts) {
   });
 
   render();
+
+  // Kick off the initial load. When it resolves, render + tell the embedder
+  // (so margin notes / orphan checks reposition once notes are in memory).
+  const ready = loadFromServer().then(() => {
+    render();
+    onNotesChanged();
+  });
+
   return {
     onShow,
     refresh: render,
@@ -314,5 +382,6 @@ function initScratchpad(panel, opts) {
     setAnchor,
     focusNote,
     getDraggedNoteId: () => draggedNoteId,
+    whenReady: () => ready,
   };
 }

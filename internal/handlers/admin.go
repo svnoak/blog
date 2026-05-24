@@ -261,6 +261,112 @@ func (h *AdminHandler) ImageUpload(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"url": "/static/images/user/" + filename})
 }
 
+// ── Scratchpad ────────────────────────────────────────────────────────────────
+
+var scratchpadColors = map[string]bool{
+	"amber": true, "mint": true, "peach": true,
+	"sky": true, "lilac": true, "ivory": true,
+}
+
+var scratchpadUID = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
+var scratchpadAnchorID = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
+
+const (
+	scratchpadMaxNotes    = 200
+	scratchpadMaxTextLen  = 20000
+	scratchpadDefaultColor = "amber"
+)
+
+func (h *AdminHandler) ScratchpadList(w http.ResponseWriter, r *http.Request) {
+	tenant := middleware.TenantFromCtx(r.Context())
+	user, err := h.currentUser(r)
+	if err != nil || user == nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "bad id", http.StatusBadRequest)
+		return
+	}
+	post, err := models.GetPostByID(h.DB, tenant.ID, id)
+	if err != nil || post == nil {
+		http.NotFound(w, r)
+		return
+	}
+	notes, err := models.ListScratchpadNotes(h.DB, tenant.ID, post.ID, user.ID)
+	if err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(notes)
+}
+
+func (h *AdminHandler) ScratchpadReplace(w http.ResponseWriter, r *http.Request) {
+	tenant := middleware.TenantFromCtx(r.Context())
+	user, err := h.currentUser(r)
+	if err != nil || user == nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "bad id", http.StatusBadRequest)
+		return
+	}
+	post, err := models.GetPostByID(h.DB, tenant.ID, id)
+	if err != nil || post == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 4<<20) // 4 MB ceiling for the whole list
+	var incoming []models.ScratchpadNote
+	if err := json.NewDecoder(r.Body).Decode(&incoming); err != nil {
+		http.Error(w, "bad json", http.StatusBadRequest)
+		return
+	}
+	if len(incoming) > scratchpadMaxNotes {
+		http.Error(w, "too many notes", http.StatusRequestEntityTooLarge)
+		return
+	}
+
+	seen := make(map[string]bool, len(incoming))
+	for i := range incoming {
+		n := &incoming[i]
+		if !scratchpadUID.MatchString(n.UID) {
+			http.Error(w, "bad note id", http.StatusBadRequest)
+			return
+		}
+		if seen[n.UID] {
+			http.Error(w, "duplicate note id", http.StatusBadRequest)
+			return
+		}
+		seen[n.UID] = true
+		if !scratchpadColors[n.Color] {
+			n.Color = scratchpadDefaultColor
+		}
+		if n.Tilt < -10 {
+			n.Tilt = -10
+		} else if n.Tilt > 10 {
+			n.Tilt = 10
+		}
+		if len(n.Text) > scratchpadMaxTextLen {
+			n.Text = n.Text[:scratchpadMaxTextLen]
+		}
+		if n.AnchorID != "" && !scratchpadAnchorID.MatchString(n.AnchorID) {
+			n.AnchorID = ""
+		}
+	}
+
+	if err := models.ReplaceScratchpadNotes(h.DB, tenant.ID, post.ID, user.ID, incoming); err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // ── Settings ──────────────────────────────────────────────────────────────────
 
 func (h *AdminHandler) customFonts(tenantID int64) []middleware.CustomFont {

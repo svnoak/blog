@@ -91,6 +91,24 @@ func migrate(db *sql.DB) error {
 			tag_id  INTEGER NOT NULL REFERENCES tags(id)  ON DELETE CASCADE,
 			PRIMARY KEY (post_id, tag_id)
 		);
+
+		CREATE TABLE IF NOT EXISTS scratchpad_notes (
+			id         INTEGER PRIMARY KEY AUTOINCREMENT,
+			tenant_id  INTEGER NOT NULL REFERENCES tenants(id),
+			post_id    INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+			user_id    INTEGER NOT NULL REFERENCES users(id),
+			uid        TEXT    NOT NULL,
+			position   INTEGER NOT NULL DEFAULT 0,
+			color      TEXT    NOT NULL DEFAULT 'amber',
+			tilt       REAL    NOT NULL DEFAULT 0,
+			text       TEXT    NOT NULL DEFAULT '',
+			anchor_id  TEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(post_id, user_id, uid)
+		);
+		CREATE INDEX IF NOT EXISTS idx_scratchpad_post_user
+			ON scratchpad_notes(post_id, user_id);
 	`)
 	return err
 }
