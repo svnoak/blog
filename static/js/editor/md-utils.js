@@ -4,6 +4,21 @@ function escHtml(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// {#aXXXXX} anchor token. Used by the scratchpad to pin notes to blocks
+// (paragraphs / headings / blockquotes). Round-trips through Write ↔ Markdown
+// as a `data-anchor-id` attribute on the wrapping element.
+const ANCHOR_RE = /\s*\{#(a[a-z0-9]+)\}\s*$/;
+function stripAnchor(line) {
+  const m = line.match(ANCHOR_RE);
+  if (!m) return { text: line, anchorId: null };
+  return { text: line.slice(0, m.index), anchorId: m[1] };
+}
+function anchorAttr(id) { return id ? ` data-anchor-id="${id}"` : ''; }
+function anchorTail(el) {
+  const id = el.getAttribute && el.getAttribute('data-anchor-id');
+  return id ? ` {#${id}}` : '';
+}
+
 function mdInline(text) {
   let s = escHtml(text);
   s = s.replace(/`([^`]+?)`/g, (_, c) => `<code>${c}</code>`);
@@ -35,14 +50,20 @@ function mdToHtml(md) {
     if (/^\s*(---|\*\*\*|___)\s*$/.test(line)) { out.push('<hr>'); i++; continue; }
 
     const h = line.match(/^(#{1,3})\s+(.*)$/);
-    if (h) { out.push(`<h${h[1].length}>${mdInline(h[2])}</h${h[1].length}>`); i++; continue; }
+    if (h) {
+      const stripped = stripAnchor(h[2]);
+      out.push(`<h${h[1].length}${anchorAttr(stripped.anchorId)}>${mdInline(stripped.text)}</h${h[1].length}>`);
+      i++; continue;
+    }
 
     if (/^\s*>\s?/.test(line)) {
       const buf = [];
       while (i < lines.length && /^\s*>\s?/.test(lines[i])) {
         buf.push(lines[i].replace(/^\s*>\s?/, '')); i++;
       }
-      out.push(`<blockquote>${mdInline(buf.join(' '))}</blockquote>`);
+      const joined = buf.join(' ');
+      const stripped = stripAnchor(joined);
+      out.push(`<blockquote${anchorAttr(stripped.anchorId)}>${mdInline(stripped.text)}</blockquote>`);
       continue;
     }
 
@@ -85,7 +106,11 @@ function mdToHtml(md) {
            !/^(#{1,3}\s|>\s?|[-*+]\s|\d+\.\s|\||```|---|\*\*\*|___)/.test(lines[i])) {
       buf.push(lines[i]); i++;
     }
-    if (buf.length) out.push(`<p>${mdInline(buf.join(' '))}</p>`);
+    if (buf.length) {
+      const joined  = buf.join(' ');
+      const stripped = stripAnchor(joined);
+      out.push(`<p${anchorAttr(stripped.anchorId)}>${mdInline(stripped.text)}</p>`);
+    }
   }
 
   return out.join('\n');
@@ -123,12 +148,15 @@ function htmlToMd(html) {
     if (node.nodeType !== Node.ELEMENT_NODE) return;
     const tag = node.tagName.toLowerCase();
     switch (tag) {
-      case 'h1': out.push(`# ${inlineToMd(node)}`);   break;
-      case 'h2': out.push(`## ${inlineToMd(node)}`);  break;
-      case 'h3': out.push(`### ${inlineToMd(node)}`); break;
+      case 'h1': out.push(`# ${inlineToMd(node)}${anchorTail(node)}`);   break;
+      case 'h2': out.push(`## ${inlineToMd(node)}${anchorTail(node)}`);  break;
+      case 'h3': out.push(`### ${inlineToMd(node)}${anchorTail(node)}`); break;
       case 'blockquote': {
-        const lines = inlineToMd(node).split('\n').map(l => `> ${l}`).join('\n');
-        out.push(lines); break;
+        const inner = inlineToMd(node);
+        const tail  = anchorTail(node);
+        const parts = inner.split('\n').map(l => `> ${l}`);
+        if (tail) parts[parts.length - 1] = parts[parts.length - 1] + tail;
+        out.push(parts.join('\n')); break;
       }
       case 'ul':
         node.querySelectorAll(':scope > li').forEach(li => out.push(`- ${inlineToMd(li)}`)); break;
@@ -154,7 +182,10 @@ function htmlToMd(html) {
       case 'div': {
         const md = inlineToMd(node).trim();
         if (!md) break;
-        md.split(/\n+/).map(s => s.trim()).filter(Boolean).forEach(s => out.push(s));
+        const tail  = tag === 'p' ? anchorTail(node) : '';
+        const parts = md.split(/\n+/).map(s => s.trim()).filter(Boolean);
+        if (tail && parts.length) parts[parts.length - 1] = parts[parts.length - 1] + tail;
+        parts.forEach(s => out.push(s));
         break;
       }
       case 'br':

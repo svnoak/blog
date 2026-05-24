@@ -178,16 +178,170 @@
   spToolbar && spToolbar.addEventListener('click', toggleToolbar);
   toolbarBtn && toolbarBtn.addEventListener('click', toggleToolbar);
 
-  // ── Side panels: outline + scratchpad ─────────────────────────────────────────
+  // ── Side panels: outline + scratchpad + margin notes ─────────────────────────
   const outlineApi = initOutline(outlinePanel, {
     getMode:     () => currentMode,
     getEditorEl: () => wysiwyg,
     getMdEl:     () => mdTextarea,
     onClose:     () => setOutline(false),
   });
+
+  // Track which top-level block in WYSIWYG the cursor is in, so the pin button
+  // knows where to attach. The .is-focused class already tracks this for focus
+  // mode; we just expose the most recently focused block here too.
+  let lastFocusedBlock = null;
+  function trackFocusedBlock() {
+    if (currentMode !== 'wysiwyg') return;
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    let n = sel.getRangeAt(0).startContainer;
+    if (!wysiwyg.contains(n)) return;
+    while (n && n.parentNode !== wysiwyg) n = n.parentNode;
+    if (n && n !== wysiwyg) lastFocusedBlock = n;
+  }
+  document.addEventListener('selectionchange', trackFocusedBlock);
+
+  function genAnchorId() {
+    let id;
+    const existing = new Set([...wysiwyg.querySelectorAll('[data-anchor-id]')]
+      .map(el => el.dataset.anchorId));
+    do { id = 'a' + Math.random().toString(36).slice(2, 7); } while (existing.has(id));
+    return id;
+  }
+
+  function blockExistsForAnchor(anchorId) {
+    return !!wysiwyg.querySelector(`[data-anchor-id="${anchorId}"]`);
+  }
+
+  function isOrphanNote(note) {
+    if (!note.anchor) return false;
+    if (note.anchor.postId !== POST_ID) return false;
+    return !blockExistsForAnchor(note.anchor.anchorId);
+  }
+
+  function canPinNow() { return POST_ID > 0; }
+
   const scratchpadApi = initScratchpad(scratchpadPanel, {
-    onClose: () => setScratchpad(false),
+    onClose:    () => setScratchpad(false),
+    onPinClick: handlePinClick,
+    isOrphan:   isOrphanNote,
+    canPin:     canPinNow,
   });
+
+  // Margin notes overlay
+  const marginNotesContainer = document.getElementById('margin-notes');
+  const marginNotesApi = initMarginNotes(marginNotesContainer, {
+    getEditorEl: () => wysiwyg,
+    getColumnEl: () => zenColumn,
+    getPostId:   () => POST_ID,
+    getNotes:    () => scratchpadApi.getNotes(),
+    getMode:     () => currentMode,
+    onClickNote: (id) => { setScratchpad(true); scratchpadApi.focusNote(id); },
+    onUnpin:     (id) => doUnpin(id),
+  });
+
+  function repositionMargin() { marginNotesApi.reposition(); }
+
+  function pinNoteToBlock(noteId, block) {
+    if (!canPinNow()) {
+      alert('Save the post once before pinning notes.');
+      return;
+    }
+    if (!block) return;
+    // If the block already has an anchor, the existing note becomes orphaned.
+    let anchorId = block.dataset.anchorId;
+    if (!anchorId) {
+      anchorId = genAnchorId();
+      block.dataset.anchorId = anchorId;
+    } else {
+      // Clear any other note currently pointing to this anchor.
+      scratchpadApi.getNotes().forEach(n => {
+        if (n.id !== noteId && n.anchor &&
+            n.anchor.postId === POST_ID && n.anchor.anchorId === anchorId) {
+          scratchpadApi.setAnchor(n.id, null);
+        }
+      });
+    }
+    // If the note was previously pinned elsewhere, remove that anchor from its old block.
+    const prev = scratchpadApi.getNoteById(noteId);
+    if (prev && prev.anchor && prev.anchor.anchorId !== anchorId) {
+      const old = wysiwyg.querySelector(`[data-anchor-id="${prev.anchor.anchorId}"]`);
+      if (old) delete old.dataset.anchorId;
+    }
+    scratchpadApi.setAnchor(noteId, { postId: POST_ID, anchorId });
+    scheduleAutosave();
+    repositionMargin();
+  }
+
+  function doUnpin(noteId) {
+    const n = scratchpadApi.getNoteById(noteId);
+    if (!n || !n.anchor) return;
+    const block = wysiwyg.querySelector(`[data-anchor-id="${n.anchor.anchorId}"]`);
+    if (block) delete block.dataset.anchorId;
+    scratchpadApi.setAnchor(noteId, null);
+    scheduleAutosave();
+    repositionMargin();
+  }
+
+  function handlePinClick(noteId) {
+    const n = scratchpadApi.getNoteById(noteId);
+    if (!n) return;
+    if (n.anchor) { doUnpin(noteId); return; }
+    if (!canPinNow()) {
+      alert('Save the post once before pinning notes.');
+      return;
+    }
+    if (currentMode !== 'wysiwyg') {
+      alert('Switch to Write mode to pin a note to a paragraph.');
+      return;
+    }
+    if (!lastFocusedBlock || !wysiwyg.contains(lastFocusedBlock)) {
+      alert('Click into a paragraph in the editor first, then click the pin.');
+      return;
+    }
+    if (!isPinnableBlock(lastFocusedBlock)) {
+      alert('Pinning is supported on paragraphs, headings, and quotes.');
+      return;
+    }
+    pinNoteToBlock(noteId, lastFocusedBlock);
+  }
+
+  // ── Drag-to-pin: drop a scratchpad note onto an editor block ────────────────
+  function onEditorDragOver(e) {
+    if (!e.dataTransfer.types.includes('application/x-bloggy-note')) return;
+    if (currentMode !== 'wysiwyg') return;
+    let block = e.target;
+    while (block && block.parentNode !== wysiwyg) block = block.parentNode;
+    if (!block || block === wysiwyg) return;
+    if (!isPinnableBlock(block)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    wysiwyg.querySelectorAll('.is-pin-target').forEach(el => el.classList.remove('is-pin-target'));
+    block.classList.add('is-pin-target');
+  }
+  function onEditorDragLeave(e) {
+    if (e.target === wysiwyg) {
+      wysiwyg.querySelectorAll('.is-pin-target').forEach(el => el.classList.remove('is-pin-target'));
+    }
+  }
+  function onEditorDrop(e) {
+    if (!e.dataTransfer.types.includes('application/x-bloggy-note')) return;
+    if (currentMode !== 'wysiwyg') return;
+    let block = e.target;
+    while (block && block.parentNode !== wysiwyg) block = block.parentNode;
+    if (!block || block === wysiwyg || !isPinnableBlock(block)) return;
+    e.preventDefault();
+    wysiwyg.querySelectorAll('.is-pin-target').forEach(el => el.classList.remove('is-pin-target'));
+    const noteId = e.dataTransfer.getData('application/x-bloggy-note');
+    if (noteId) pinNoteToBlock(noteId, block);
+  }
+  function isPinnableBlock(el) {
+    const tag = el.tagName;
+    return tag === 'P' || tag === 'H1' || tag === 'H2' || tag === 'H3' || tag === 'BLOCKQUOTE';
+  }
+  wysiwyg.addEventListener('dragover',  onEditorDragOver);
+  wysiwyg.addEventListener('dragleave', onEditorDragLeave);
+  wysiwyg.addEventListener('drop',      onEditorDrop);
 
   function setOutline(on) {
     outlinePanel.hidden = !on;
@@ -382,6 +536,8 @@
     if (mode === 'markdown') autoResizeMd();
     updateStats();
     refreshOutlineIfOpen();
+    repositionMargin();
+    scratchpadApi.refresh();
     bumpActivity();
   }
   window.setMode = setMode;
@@ -418,6 +574,8 @@
     scheduleAutosave();
     doTypewriterScroll();
     refreshOutlineIfOpen();
+    repositionMargin();
+    scratchpadApi.refresh();
   });
 
   // Markdown shortcuts: `# `, `> `, `- `, `1. ` on space
@@ -762,5 +920,10 @@
     // Side panels — default off; remember previous state per browser
     if (localStorage.getItem('bloggy-outline')    === '1') setOutline(true);
     if (localStorage.getItem('bloggy-scratchpad') === '1') setScratchpad(true);
+
+    // Margin notes: initial reposition + first scratchpad render now that
+    // wysiwyg has its content and we know which blocks carry anchors.
+    repositionMargin();
+    scratchpadApi.refresh();
   })();
 })();

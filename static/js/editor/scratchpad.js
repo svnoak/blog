@@ -4,7 +4,10 @@
 // Call initScratchpad(panelEl, { onClose })
 
 function initScratchpad(panel, opts) {
-  const onClose = (opts && opts.onClose) || function () {};
+  const onClose       = (opts && opts.onClose)       || function () {};
+  const onPinClick    = (opts && opts.onPinClick)    || function () {};
+  const isOrphan      = (opts && opts.isOrphan)      || function () { return false; };
+  const canPin        = (opts && opts.canPin)        || function () { return true; };
 
   const COLORS = [
     { id: 'amber', bg: '#f5d97a', ink: '#3a2a08' },
@@ -88,6 +91,22 @@ function initScratchpad(panel, opts) {
     save();
     render();
   }
+  function setAnchor(id, anchor) {
+    const n = notes.find(x => x.id === id);
+    if (!n) return;
+    if (anchor) n.anchor = anchor; else delete n.anchor;
+    save();
+    render();
+  }
+  function getNoteById(id) { return notes.find(n => n.id === id); }
+  function focusNote(id) {
+    render();
+    const node = stack.querySelector(`.postit[data-note-id="${id}"]`);
+    if (!node) return;
+    node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const ta = node.querySelector('.postit-input');
+    if (ta) setTimeout(() => ta.focus(), 100);
+  }
   function clearAll() {
     if (!confirm('Clear all scratchpad notes?')) return;
     notes = [];
@@ -106,12 +125,13 @@ function initScratchpad(panel, opts) {
     stack.querySelectorAll('.is-drop-target, .is-drop-target-after')
       .forEach(el => el.classList.remove('is-drop-target', 'is-drop-target-after'));
   }
-  function bindDrag(node, idx) {
+  function bindDrag(node, idx, noteId) {
     node.draggable = true;
     node.addEventListener('dragstart', (e) => {
       dragIdx = idx;
       node.classList.add('is-dragging');
       try { e.dataTransfer.setData('text/plain', String(idx)); } catch (_) {}
+      try { e.dataTransfer.setData('application/x-bloggy-note', noteId); } catch (_) {}
       e.dataTransfer.effectAllowed = 'move';
     });
     node.addEventListener('dragend', () => {
@@ -162,8 +182,12 @@ function initScratchpad(panel, opts) {
 
     notes.forEach((n, i) => {
       const c = colorOf(n.color);
+      const pinned   = !!n.anchor;
+      const orphaned = pinned && isOrphan(n);
+      const pinAllowed = canPin();
       const node = document.createElement('div');
-      node.className = 'postit';
+      node.className = 'postit' + (pinned ? ' is-pinned' : '') + (orphaned ? ' is-orphaned' : '');
+      node.dataset.noteId = n.id;
       node.style.setProperty('--note-bg', c.bg);
       node.style.setProperty('--note-ink', c.ink);
       node.style.setProperty('--note-tilt', `${n.tilt}deg`);
@@ -175,16 +199,29 @@ function initScratchpad(panel, opts) {
                 title="${col.id}" aria-label="Change to ${col.id}"></button>
       `).join('');
 
+      const pinTitle = pinned
+        ? (orphaned ? 'Anchor lost — click to unpin' : 'Unpin from paragraph')
+        : (pinAllowed ? 'Pin to the current paragraph' : 'Save the post once before pinning');
+      const orphanBadge = orphaned
+        ? '<span class="postit-orphan-badge" title="The paragraph this note was pinned to no longer exists">anchor lost</span>'
+        : '';
+
       node.innerHTML = `
         <button type="button" class="postit-color-btn"
                 title="Change color" aria-label="Change color"
                 aria-haspopup="true" aria-expanded="false"
                 style="background:${c.bg}"></button>
         <div class="postit-color-pop" hidden role="menu">${swatches}</div>
-        <span class="postit-grip" title="Drag to reorder" aria-hidden="true"></span>
+        <span class="postit-grip" title="Drag to reorder or onto a paragraph to pin" aria-hidden="true"></span>
+        <button type="button" class="postit-pin" title="${pinTitle}" aria-label="${pinTitle}" aria-pressed="${pinned}" ${(!pinned && !pinAllowed) ? 'disabled' : ''}>
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 2 L14 6 L11 7 L9 13 L7 11 L3 13 L5 9 L3 7 L9 5 Z"/>
+          </svg>
+        </button>
         <button type="button" class="postit-x" title="Delete note" aria-label="Delete note">×</button>
         <textarea class="postit-input" rows="3" spellcheck="true"
           placeholder="A thought, an idea, a thing to remember…"></textarea>
+        ${orphanBadge}
       `;
       const ta = node.querySelector('.postit-input');
       ta.value = n.text;
@@ -216,7 +253,18 @@ function initScratchpad(panel, opts) {
         });
       });
 
-      bindDrag(node, i);
+      // Pin / unpin
+      const pinBtn = node.querySelector('.postit-pin');
+      if (pinBtn) {
+        pinBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+        pinBtn.addEventListener('dragstart',  (e) => e.preventDefault());
+        pinBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          onPinClick(n.id);
+        });
+      }
+
+      bindDrag(node, i, n.id);
       stack.appendChild(node);
       grow(ta);
     });
@@ -251,5 +299,12 @@ function initScratchpad(panel, opts) {
   });
 
   render();
-  return { onShow };
+  return {
+    onShow,
+    refresh: render,
+    getNotes: () => notes.slice(),
+    getNoteById,
+    setAnchor,
+    focusNote,
+  };
 }
