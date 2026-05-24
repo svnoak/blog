@@ -222,10 +222,11 @@
   function canPinNow() { return POST_ID > 0; }
 
   const scratchpadApi = initScratchpad(scratchpadPanel, {
-    onClose:    () => setScratchpad(false),
-    onPinClick: handlePinClick,
-    isOrphan:   isOrphanNote,
-    canPin:     canPinNow,
+    onClose:        () => setScratchpad(false),
+    onPinClick:     handlePinClick,
+    isOrphan:       isOrphanNote,
+    canPin:         canPinNow,
+    onNotesChanged: () => marginNotesApi && marginNotesApi.reposition(),
   });
 
   // Margin notes overlay

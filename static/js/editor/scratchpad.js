@@ -4,10 +4,11 @@
 // Call initScratchpad(panelEl, { onClose })
 
 function initScratchpad(panel, opts) {
-  const onClose       = (opts && opts.onClose)       || function () {};
-  const onPinClick    = (opts && opts.onPinClick)    || function () {};
-  const isOrphan      = (opts && opts.isOrphan)      || function () { return false; };
-  const canPin        = (opts && opts.canPin)        || function () { return true; };
+  const onClose         = (opts && opts.onClose)         || function () {};
+  const onPinClick      = (opts && opts.onPinClick)      || function () {};
+  const isOrphan        = (opts && opts.isOrphan)        || function () { return false; };
+  const canPin          = (opts && opts.canPin)          || function () { return true; };
+  const onNotesChanged  = (opts && opts.onNotesChanged)  || function () {};
 
   const COLORS = [
     { id: 'amber', bg: '#f5d97a', ink: '#3a2a08' },
@@ -30,6 +31,7 @@ function initScratchpad(panel, opts) {
   }
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(notes)); } catch (_) {}
+    onNotesChanged();
   }
   function nid() { return 'n_' + Math.random().toString(36).slice(2, 9); }
 
