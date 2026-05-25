@@ -32,9 +32,10 @@ func SessionStore(secretKey string) sessions.Store {
 	store := sessions.NewCookieStore([]byte(secretKey))
 	store.Options = &sessions.Options{
 		Path:     "/",
-		MaxAge:   86400 * 30,
+		MaxAge:   86400 * 7,
 		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
 	}
 	return store
 }
