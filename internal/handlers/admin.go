@@ -565,7 +565,12 @@ func (h *AdminHandler) AccountPost(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not change password", http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/admin/account?success=1", http.StatusFound)
+	// Invalidate the current session so the old password can no longer be used.
+	sess, _ := h.Store.Get(r, middleware.SessionName)
+	delete(sess.Values, middleware.SessionUserID)
+	sess.Options.MaxAge = -1
+	sess.Save(r, w)
+	http.Redirect(w, r, "/admin/login", http.StatusFound)
 }
 
 // ── About page editor ─────────────────────────────────────────────────────────
