@@ -18,7 +18,6 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
-	"github.com/yuin/goldmark/renderer/html"
 )
 
 type atomFeed struct {
@@ -65,7 +64,6 @@ type PublicHandler struct {
 func NewPublicHandler(db *sql.DB, tmpls *Templates, store sessions.Store) *PublicHandler {
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM),
-		goldmark.WithRendererOptions(html.WithUnsafe()),
 	)
 	return &PublicHandler{DB: db, Tmpls: tmpls, Store: store, md: md}
 }

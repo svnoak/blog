@@ -21,7 +21,6 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
-	"github.com/yuin/goldmark/renderer/html"
 )
 
 type AdminHandler struct {
@@ -174,7 +173,6 @@ func (h *AdminHandler) PreviewPost(w http.ResponseWriter, r *http.Request) {
 
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM),
-		goldmark.WithRendererOptions(html.WithUnsafe()),
 	)
 	var buf bytes.Buffer
 	if err := md.Convert([]byte(post.Content), &buf); err != nil {
