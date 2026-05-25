@@ -4,9 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
+	"sync"
 	"syscall"
+	"time"
 
 	"bloggy/internal/config"
 	"bloggy/internal/db"
@@ -17,7 +20,39 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"golang.org/x/term"
+	"golang.org/x/time/rate"
 )
+
+// loginLimiters holds a per-IP token-bucket limiter: 5 requests/minute, burst 5.
+var (
+	loginLimiters   = map[string]*rate.Limiter{}
+	loginLimitersMu sync.Mutex
+)
+
+func getLoginLimiter(ip string) *rate.Limiter {
+	loginLimitersMu.Lock()
+	defer loginLimitersMu.Unlock()
+	if l, ok := loginLimiters[ip]; ok {
+		return l
+	}
+	l := rate.NewLimiter(rate.Every(time.Minute/5), 5)
+	loginLimiters[ip] = l
+	return l
+}
+
+func loginRateLimit(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ip, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			ip = r.RemoteAddr
+		}
+		if !getLoginLimiter(ip).Allow() {
+			http.Error(w, "too many requests", http.StatusTooManyRequests)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -91,7 +126,7 @@ func runServe(args []string) {
 
 	// Auth routes
 	r.Get("/admin/login", authH.LoginGet)
-	r.Post("/admin/login", authH.LoginPost)
+	r.With(loginRateLimit).Post("/admin/login", authH.LoginPost)
 	r.Get("/admin/logout", authH.Logout)
 
 	// Admin routes (require session)
