@@ -587,6 +587,7 @@ func (h *AdminHandler) AboutPost(w http.ResponseWriter, r *http.Request) {
 	email := strings.TrimSpace(r.FormValue("about_email"))
 	since := strings.TrimSpace(r.FormValue("about_since"))
 	md := r.FormValue("about_md")
+	tagline := strings.TrimSpace(r.FormValue("about_tagline"))
 
 	// Light caps — keep the column reasonable in size.
 	if len(md) > 50000 {
@@ -604,8 +605,11 @@ func (h *AdminHandler) AboutPost(w http.ResponseWriter, r *http.Request) {
 	if len(since) > 80 {
 		since = since[:80]
 	}
+	if len(tagline) > 120 {
+		tagline = tagline[:120]
+	}
 
-	if err := middleware.UpdateTenantAbout(h.DB, tenant.ID, name, handle, email, since, md); err != nil {
+	if err := middleware.UpdateTenantAbout(h.DB, tenant.ID, name, handle, email, since, md, tagline); err != nil {
 		http.Error(w, "could not save", http.StatusInternalServerError)
 		return
 	}

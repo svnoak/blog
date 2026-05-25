@@ -21,6 +21,7 @@ type Tenant struct {
 	AboutEmail       string
 	AboutSince       string
 	AboutMD          string
+	AboutTagline     string
 	PortraitFilename string
 	CreatedAt        time.Time
 }
@@ -54,11 +55,11 @@ func getTenantByDomain(db *sql.DB, domain string) (*Tenant, error) {
 	var t Tenant
 	err := db.QueryRow(
 		`SELECT id, name, domain, light_theme, dark_theme, pub_font, admin_font,
-		        about_name, about_handle, about_email, about_since, about_md, portrait_filename,
+		        about_name, about_handle, about_email, about_since, about_md, about_tagline, portrait_filename,
 		        created_at
 		   FROM tenants WHERE domain = ?`, domain,
 	).Scan(&t.ID, &t.Name, &t.Domain, &t.LightTheme, &t.DarkTheme, &t.PubFont, &t.AdminFont,
-		&t.AboutName, &t.AboutHandle, &t.AboutEmail, &t.AboutSince, &t.AboutMD, &t.PortraitFilename,
+		&t.AboutName, &t.AboutHandle, &t.AboutEmail, &t.AboutSince, &t.AboutMD, &t.AboutTagline, &t.PortraitFilename,
 		&t.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -117,12 +118,12 @@ func DeleteCustomFont(db *sql.DB, tenantID, fontID int64) (string, error) {
 	return filename, err
 }
 
-func UpdateTenantAbout(db *sql.DB, tenantID int64, name, handle, email, since, md string) error {
+func UpdateTenantAbout(db *sql.DB, tenantID int64, name, handle, email, since, md, tagline string) error {
 	_, err := db.Exec(
 		`UPDATE tenants
-		    SET about_name = ?, about_handle = ?, about_email = ?, about_since = ?, about_md = ?
+		    SET about_name = ?, about_handle = ?, about_email = ?, about_since = ?, about_md = ?, about_tagline = ?
 		  WHERE id = ?`,
-		name, handle, email, since, md, tenantID,
+		name, handle, email, since, md, tagline, tenantID,
 	)
 	return err
 }

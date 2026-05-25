@@ -64,7 +64,7 @@
         </section>
 
         <footer class="r-about-foot">
-          <em>{{.Tenant.Name}}</em> · made slowly, on purpose.
+          <em>{{.Tenant.Name}}</em>{{if .Tenant.AboutTagline}} · {{.Tenant.AboutTagline}}{{end}}
         </footer>
       </div>
     </main>

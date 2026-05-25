@@ -43,6 +43,12 @@
       </div>
 
       <div class="settings-section">
+        <div class="settings-label">Footer tagline</div>
+        <div class="settings-hint">Shown at the bottom of the About page after the blog name. e.g. <em>made slowly, on purpose.</em></div>
+        <input type="text" name="about_tagline" value="{{.Tenant.AboutTagline}}" class="settings-input" maxlength="120" placeholder="made slowly, on purpose.">
+      </div>
+
+      <div class="settings-section">
         <div class="settings-label">Bio (Markdown)</div>
         <div class="settings-hint">The first paragraph gets a drop cap on the public page.</div>
         <textarea name="about_md" rows="14" class="settings-input" style="width:100%;font-family:var(--zen-font-mono);font-size:0.85rem;line-height:1.6">{{.Tenant.AboutMD}}</textarea>

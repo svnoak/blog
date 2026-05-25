@@ -72,6 +72,7 @@ func migrate(db *sql.DB) error {
 	addColumnIfMissing(db, "tenants", "about_email", `TEXT NOT NULL DEFAULT ''`)
 	addColumnIfMissing(db, "tenants", "about_since", `TEXT NOT NULL DEFAULT ''`)
 	addColumnIfMissing(db, "tenants", "about_md", `TEXT NOT NULL DEFAULT ''`)
+	addColumnIfMissing(db, "tenants", "about_tagline", `TEXT NOT NULL DEFAULT ''`)
 	addColumnIfMissing(db, "tenants", "portrait_filename", `TEXT NOT NULL DEFAULT ''`)
 
 	_, err = db.Exec(`
