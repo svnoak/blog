@@ -57,10 +57,10 @@ func AuthenticateUser(db *sql.DB, tenantID int64, email, password string) (*User
 	return &u, nil
 }
 
-func GetUserByID(db *sql.DB, id int64) (*User, error) {
+func GetUserByID(db *sql.DB, tenantID, id int64) (*User, error) {
 	var u User
 	err := db.QueryRow(
-		`SELECT id, tenant_id, email, display_name, created_at FROM users WHERE id = ?`, id,
+		`SELECT id, tenant_id, email, display_name, created_at FROM users WHERE id = ? AND tenant_id = ?`, id, tenantID,
 	).Scan(&u.ID, &u.TenantID, &u.Email, &u.DisplayName, &u.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil

@@ -31,11 +31,12 @@ type AdminHandler struct {
 }
 
 func (h *AdminHandler) currentUser(r *http.Request) (*models.User, error) {
+	tenant := middleware.TenantFromCtx(r.Context())
 	userID, ok := middleware.UserIDFromCtx(r.Context())
 	if !ok {
 		return nil, nil
 	}
-	return models.GetUserByID(h.DB, userID)
+	return models.GetUserByID(h.DB, tenant.ID, userID)
 }
 
 func (h *AdminHandler) PostList(w http.ResponseWriter, r *http.Request) {
