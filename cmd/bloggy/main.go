@@ -40,6 +40,27 @@ func getLoginLimiter(ip string) *rate.Limiter {
 	return l
 }
 
+// noDirFS wraps http.FileSystem to return 404 for directory requests,
+// preventing automatic directory listing of user-upload folders.
+type noDirFS struct{ http.FileSystem }
+
+func (n noDirFS) Open(name string) (http.File, error) {
+	f, err := n.FileSystem.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	stat, err := f.Stat()
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
+	if stat.IsDir() {
+		f.Close()
+		return nil, os.ErrNotExist
+	}
+	return f, nil
+}
+
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
@@ -124,7 +145,7 @@ func runServe(args []string) {
 	r.Use(securityHeaders)
 	r.Use(mw.TenantMiddleware(database))
 
-	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(noDirFS{http.Dir("static")})))
 
 	// Public routes
 	r.Get("/", publicH.Index)
