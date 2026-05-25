@@ -2,3 +2,5 @@
 *.db
 *.db-shm
 *.db-wal
+# config.toml contains the session signing key — use config.example.toml as a template
+config.toml

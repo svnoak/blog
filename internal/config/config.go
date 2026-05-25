@@ -43,8 +43,15 @@ func Load(path string) (*Config, error) {
 	if v := os.Getenv("BLOGGY_DB_PATH"); v != "" {
 		cfg.Server.DBPath = v
 	}
-	if cfg.Server.SecretKey == "" {
-		return nil, fmt.Errorf("server.secret_key must be set in config")
+	if v := os.Getenv("BLOGGY_SECRET_KEY"); v != "" {
+		cfg.Server.SecretKey = v
+	}
+	const defaultPlaceholder = "change-me-to-a-random-32-char-secret!!"
+	switch cfg.Server.SecretKey {
+	case "":
+		return nil, fmt.Errorf("server.secret_key must be set (or use BLOGGY_SECRET_KEY env var)")
+	case defaultPlaceholder:
+		return nil, fmt.Errorf("server.secret_key is still the default placeholder — set a real random secret")
 	}
 	return &cfg, nil
 }

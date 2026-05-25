@@ -1,0 +1,10 @@
+[server]
+port       = 8080
+# Generate with: openssl rand -base64 32
+# Can also be set via BLOGGY_SECRET_KEY environment variable (takes precedence)
+secret_key = ""
+db_path    = "bloggy.db"
+
+[[tenants]]
+name   = "My Blog"
+domain = "localhost"
