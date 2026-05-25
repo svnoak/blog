@@ -26,6 +26,9 @@ func init() {
 }
 
 func CreateUser(db *sql.DB, tenantID int64, email, displayName, password string) error {
+	if len(password) < 8 {
+		return fmt.Errorf("password must be at least 8 characters")
+	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("hash password: %w", err)
