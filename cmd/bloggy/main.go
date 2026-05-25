@@ -127,7 +127,7 @@ func runServe(args []string) {
 	// Auth routes
 	r.Get("/admin/login", authH.LoginGet)
 	r.With(loginRateLimit).Post("/admin/login", authH.LoginPost)
-	r.Get("/admin/logout", authH.Logout)
+	r.Post("/admin/logout", authH.Logout)
 
 	// Admin routes (require session)
 	r.Group(func(r chi.Router) {

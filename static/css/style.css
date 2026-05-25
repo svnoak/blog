@@ -405,6 +405,7 @@ body::before {
   transition: color .15s, background .15s;
 }
 .nav-link:hover { color: var(--zen-ink); background: var(--zen-accent-s); text-decoration: none; }
+.nav-link--btn { background: none; border: none; cursor: pointer; font-family: inherit; }
 
 .admin-main {
   position: relative; z-index: 1;
