@@ -16,6 +16,15 @@ type User struct {
 	CreatedAt   time.Time
 }
 
+// sentinelHash is used to perform a dummy bcrypt comparison when a login
+// email is not found, keeping response time constant regardless of existence.
+var sentinelHash []byte
+
+func init() {
+	h, _ := bcrypt.GenerateFromPassword([]byte("sentinel-constant-time"), bcrypt.DefaultCost)
+	sentinelHash = h
+}
+
 func CreateUser(db *sql.DB, tenantID int64, email, displayName, password string) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -36,6 +45,7 @@ func AuthenticateUser(db *sql.DB, tenantID int64, email, password string) (*User
 		tenantID, email,
 	).Scan(&u.ID, &u.TenantID, &u.Email, &u.DisplayName, &hash, &u.CreatedAt)
 	if err == sql.ErrNoRows {
+		bcrypt.CompareHashAndPassword(sentinelHash, []byte(password)) // constant-time on miss
 		return nil, nil
 	}
 	if err != nil {
