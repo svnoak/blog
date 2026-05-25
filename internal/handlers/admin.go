@@ -210,7 +210,7 @@ func (h *AdminHandler) ImageUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, header, err := r.FormFile("image")
+	file, _, err := r.FormFile("image")
 	if err != nil {
 		http.Error(w, `{"error":"no file"}`, http.StatusBadRequest)
 		return
@@ -228,17 +228,10 @@ func (h *AdminHandler) ImageUpload(w http.ResponseWriter, r *http.Request) {
 
 	ext, ok := allowedImageTypes[mime]
 	if !ok {
-		// Also try by file extension as a fallback
-		ext = strings.ToLower(filepath.Ext(header.Filename))
-		if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".gif" && ext != ".webp" {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnsupportedMediaType)
-			w.Write([]byte(`{"error":"unsupported file type"}`))
-			return
-		}
-		if ext == ".jpeg" {
-			ext = ".jpg"
-		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnsupportedMediaType)
+		w.Write([]byte(`{"error":"unsupported file type"}`))
+		return
 	}
 
 	filename := fmt.Sprintf("%d_%s%s", tenant.ID, uuid.New().String(), ext)
