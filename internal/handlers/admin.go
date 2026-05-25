@@ -425,6 +425,16 @@ func (h *AdminHandler) FontUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
+	// Validate WOFF2 magic bytes (wOF2) before trusting the filename.
+	magic := make([]byte, 4)
+	if n, _ := file.Read(magic); n < 4 || string(magic) != "wOF2" {
+		http.Redirect(w, r, "/admin/settings?font_error=type", http.StatusFound)
+		return
+	}
+	if seeker, ok := file.(interface{ Seek(int64, int) (int64, error) }); ok {
+		seeker.Seek(0, 0)
+	}
+
 	if !strings.HasSuffix(strings.ToLower(header.Filename), ".woff2") {
 		http.Redirect(w, r, "/admin/settings?font_error=type", http.StatusFound)
 		return
