@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"io/fs"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -85,6 +86,7 @@ func LoadTemplates(dir string) (*Templates, error) {
 func (t *Templates) Render(w http.ResponseWriter, name string, data any) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := t.t.ExecuteTemplate(w, name, data); err != nil {
-		http.Error(w, "template error: "+err.Error(), http.StatusInternalServerError)
+		log.Printf("template error rendering %s: %v", name, err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 	}
 }
