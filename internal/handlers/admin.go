@@ -176,7 +176,7 @@ func (h *AdminHandler) PreviewPost(w http.ResponseWriter, r *http.Request) {
 		goldmark.WithExtensions(extension.GFM),
 	)
 	var buf bytes.Buffer
-	if err := md.Convert([]byte(post.Content), &buf); err != nil {
+	if err := md.Convert([]byte(stripAnchorTokens(post.Content)), &buf); err != nil {
 		http.Error(w, "render error", http.StatusInternalServerError)
 		return
 	}

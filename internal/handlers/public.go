@@ -84,6 +84,19 @@ func siteBaseURL(r *http.Request) string {
 
 var stripTags = regexp.MustCompile(`<[^>]+>`)
 
+// anchorToken matches the {#aXXXXX} scratchpad pin tokens the editor appends
+// to paragraph/heading lines. They are editor-internal and must not appear in
+// public output.
+var anchorToken = regexp.MustCompile(`\s*\{#a[a-z0-9]+\}\s*$`)
+
+func stripAnchorTokens(md string) string {
+	lines := strings.Split(md, "\n")
+	for i, l := range lines {
+		lines[i] = anchorToken.ReplaceAllString(l, "")
+	}
+	return strings.Join(lines, "\n")
+}
+
 func plainExcerpt(htmlContent string, maxLen int) string {
 	plain := stripTags.ReplaceAllString(htmlContent, " ")
 	plain = strings.Join(strings.Fields(plain), " ")
@@ -186,7 +199,7 @@ func (h *PublicHandler) ShowPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var buf bytes.Buffer
-	if err := h.md.Convert([]byte(post.Content), &buf); err != nil {
+	if err := h.md.Convert([]byte(stripAnchorTokens(post.Content)), &buf); err != nil {
 		http.Error(w, "render error", http.StatusInternalServerError)
 		return
 	}
@@ -259,7 +272,7 @@ func (h *PublicHandler) Feed(w http.ResponseWriter, r *http.Request) {
 
 	for _, p := range posts {
 		var buf bytes.Buffer
-		h.md.Convert([]byte(p.Content), &buf)
+		h.md.Convert([]byte(stripAnchorTokens(p.Content)), &buf)
 
 		pubTime := p.CreatedAt.UTC().Format(time.RFC3339)
 		if p.PublishedAt != nil {
