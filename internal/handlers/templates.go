@@ -52,9 +52,6 @@ func LoadTemplates(dir string) (*Templates, error) {
 			}
 			return t.Format("2006-01-02")
 		},
-		"safeHTML": func(s string) template.HTML {
-			return template.HTML(s)
-		},
 		"jsonString": func(s string) template.JS {
 			b, _ := json.Marshal(s)
 			return template.JS(b)

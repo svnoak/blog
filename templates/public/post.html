@@ -23,7 +23,7 @@
           {{if .LoggedIn}}{{if not .IsPreview}}<a href="/admin/posts/{{.Post.ID}}/edit" class="pub-edit-link">Edit post</a>{{end}}{{end}}
         </div>
         {{if .Post.Tags}}<div class="post-tags">{{range .Post.Tags}}<a href="/tags/{{.Slug}}" class="tag-chip">{{.Name}}</a>{{end}}</div>{{end}}
-        <div class="post-content">{{safeHTML .Content}}</div>
+        <div class="post-content">{{.Content}}</div>
       </article>
     </main>
     {{template "public-footer" .}}

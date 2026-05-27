@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/xml"
 	"fmt"
+	"html/template"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -202,7 +203,7 @@ func (h *PublicHandler) ShowPost(w http.ResponseWriter, r *http.Request) {
 	h.Tmpls.Render(w, "public/post.html", map[string]any{
 		"Tenant":      tenant,
 		"Post":        post,
-		"Content":     buf.String(),
+		"Content":     template.HTML(buf.String()),
 		"CustomFonts": h.customFonts(tenant.ID),
 		"LoggedIn":    loggedIn,
 		"BaseURL":     base,
@@ -316,11 +317,11 @@ func (h *PublicHandler) About(w http.ResponseWriter, r *http.Request) {
 		cloud[i] = aboutTagCount{TagCount: tc, CloudScale: fmt.Sprintf("%.2f", scale)}
 	}
 
-	var aboutHTML string
+	var aboutHTML template.HTML
 	if tenant.AboutMD != "" {
 		var buf bytes.Buffer
 		if err := h.md.Convert([]byte(tenant.AboutMD), &buf); err == nil {
-			aboutHTML = buf.String()
+			aboutHTML = template.HTML(buf.String())
 		}
 	}
 

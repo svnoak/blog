@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"os"
@@ -183,7 +184,7 @@ func (h *AdminHandler) PreviewPost(w http.ResponseWriter, r *http.Request) {
 	h.Tmpls.Render(w, "public/post.html", map[string]any{
 		"Tenant":      tenant,
 		"Post":        post,
-		"Content":     buf.String(),
+		"Content":     template.HTML(buf.String()),
 		"CustomFonts": h.customFonts(tenant.ID),
 		"LoggedIn":    true,
 		"BaseURL":     "",
