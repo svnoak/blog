@@ -24,22 +24,26 @@ type Config struct {
 }
 
 func Load(path string) (*Config, error) {
+	var cfg Config
+
 	data, err := os.ReadFile(path)
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return nil, fmt.Errorf("read config: %w", err)
 	}
-	var cfg Config
-	if err := toml.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("parse config: %w", err)
+	if err == nil {
+		if err := toml.Unmarshal(data, &cfg); err != nil {
+			return nil, fmt.Errorf("parse config: %w", err)
+		}
 	}
+
 	if cfg.Server.Port == 0 {
 		cfg.Server.Port = 8080
 	}
 	if cfg.Server.DBPath == "" {
 		cfg.Server.DBPath = "bloggy.db"
 	}
-	// Allow the DB path to be overridden without changing config.toml —
-	// useful when running in Docker with a mounted volume.
+	// Env vars override config file values; useful for Docker deployments where
+	// config.toml is not baked into the image.
 	if v := os.Getenv("BLOGGY_DB_PATH"); v != "" {
 		cfg.Server.DBPath = v
 	}

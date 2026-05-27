@@ -17,10 +17,11 @@ WORKDIR /app
 # ca-certificates for any future HTTPS outbound calls
 RUN apk add --no-cache ca-certificates && mkdir /data
 
-COPY --from=builder /app/bloggy      ./bloggy
-COPY --from=builder /app/templates   ./templates
-COPY --from=builder /app/static      ./static
-COPY --from=builder /app/config.toml ./config.toml
+COPY --from=builder /app/bloggy    ./bloggy
+COPY --from=builder /app/templates ./templates
+COPY --from=builder /app/static    ./static
+# config.toml is NOT baked into the image — mount it at runtime via docker-compose
+# or supply BLOGGY_SECRET_KEY (and BLOGGY_DB_PATH) as environment variables.
 
 # /data holds the SQLite database; mount a volume here for persistence
 VOLUME ["/data"]
