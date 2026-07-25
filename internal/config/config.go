@@ -60,6 +60,9 @@ func Load(path string) (*Config, error) {
 	if v := os.Getenv("BLOGGY_SECRET_KEY"); v != "" {
 		cfg.Server.SecretKey = v
 	}
+	if v := os.Getenv("BLOGGY_COUCHDB_USERNAME"); v != "" {
+		cfg.CouchDB.Username = v
+	}
 	if v := os.Getenv("BLOGGY_COUCHDB_PASSWORD"); v != "" {
 		cfg.CouchDB.Password = v
 	}
