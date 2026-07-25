@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"sync"
 	"syscall"
 	"time"
@@ -14,6 +16,7 @@ import (
 	"bloggy/internal/config"
 	"bloggy/internal/db"
 	"bloggy/internal/handlers"
+	"bloggy/internal/livesync"
 	mw "bloggy/internal/middleware"
 	"bloggy/internal/models"
 
@@ -122,10 +125,13 @@ func runServe(args []string) {
 	defer database.Close()
 
 	// Sync tenants from config
+	var tenants []*mw.Tenant
 	for _, tc := range cfg.Tenants {
-		if _, err := mw.UpsertTenant(database, tc.Name, tc.Domain, tc.Key); err != nil {
+		tenant, err := mw.UpsertTenant(database, tc.Name, tc.Domain, tc.Key)
+		if err != nil {
 			log.Fatalf("upsert tenant %s: %v", tc.Domain, err)
 		}
+		tenants = append(tenants, tenant)
 	}
 
 	store := mw.SessionStore(cfg.Server.SecretKey)
@@ -198,9 +204,38 @@ func runServe(args []string) {
 		r.Post("/admin/upload/image", adminH.ImageUpload)
 	})
 
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	if cfg.CouchDB.URL != "" {
+		authorByTenant := make(map[int64]int64, len(tenants))
+		for _, tenant := range tenants {
+			sysUser, err := models.EnsureSystemUser(database, tenant.ID, "LiveSync Sync")
+			if err != nil {
+				log.Fatalf("ensure system user for tenant %s: %v", tenant.Domain, err)
+			}
+			authorByTenant[tenant.ID] = sysUser.ID
+		}
+		client := livesync.NewClient(cfg.CouchDB.URL, cfg.CouchDB.Database, cfg.CouchDB.Username, cfg.CouchDB.Password)
+		dec := livesync.NewDecryptor(cfg.CouchDB.Passphrase)
+		watcher := livesync.NewWatcher(client, dec, database, authorByTenant)
+		go watcher.Run(ctx)
+		log.Printf("livesync: watching %s for publish-flagged notes", cfg.CouchDB.Database)
+	}
+
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
+	srv := &http.Server{Addr: addr, Handler: r}
+	go func() {
+		<-ctx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			log.Printf("http shutdown: %v", err)
+		}
+	}()
+
 	log.Printf("bloggy listening on %s", addr)
-	if err := http.ListenAndServe(addr, r); err != nil {
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
 }
