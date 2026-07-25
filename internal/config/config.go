@@ -16,11 +16,21 @@ type Server struct {
 type TenantConfig struct {
 	Name   string `toml:"name"`
 	Domain string `toml:"domain"`
+	Key    string `toml:"key"`
+}
+
+type CouchDB struct {
+	URL        string `toml:"url"`
+	Database   string `toml:"database"`
+	Username   string `toml:"username"`
+	Password   string `toml:"password"`
+	Passphrase string `toml:"passphrase"`
 }
 
 type Config struct {
 	Server  Server         `toml:"server"`
 	Tenants []TenantConfig `toml:"tenants"`
+	CouchDB CouchDB        `toml:"couchdb"`
 }
 
 func Load(path string) (*Config, error) {
@@ -49,6 +59,12 @@ func Load(path string) (*Config, error) {
 	}
 	if v := os.Getenv("BLOGGY_SECRET_KEY"); v != "" {
 		cfg.Server.SecretKey = v
+	}
+	if v := os.Getenv("BLOGGY_COUCHDB_PASSWORD"); v != "" {
+		cfg.CouchDB.Password = v
+	}
+	if v := os.Getenv("BLOGGY_COUCHDB_PASSPHRASE"); v != "" {
+		cfg.CouchDB.Passphrase = v
 	}
 	const defaultPlaceholder = "change-me-to-a-random-32-char-secret!!"
 	switch cfg.Server.SecretKey {

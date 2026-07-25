@@ -74,6 +74,19 @@ func migrate(db *sql.DB) error {
 	addColumnIfMissing(db, "tenants", "about_md", `TEXT NOT NULL DEFAULT ''`)
 	addColumnIfMissing(db, "tenants", "about_tagline", `TEXT NOT NULL DEFAULT ''`)
 	addColumnIfMissing(db, "tenants", "portrait_filename", `TEXT NOT NULL DEFAULT ''`)
+	addColumnIfMissing(db, "tenants", "key", `TEXT NOT NULL DEFAULT ''`)
+	addColumnIfMissing(db, "posts", "source_key", `TEXT`)
+	addColumnIfMissing(db, "users", "is_system", `BOOLEAN NOT NULL DEFAULT 0`)
+
+	_, err = db.Exec(`
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_tenants_key
+			ON tenants(key) WHERE key IS NOT NULL AND key != '';
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_posts_source_key
+			ON posts(tenant_id, source_key) WHERE source_key IS NOT NULL;
+	`)
+	if err != nil {
+		return err
+	}
 
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS custom_fonts (
@@ -116,6 +129,11 @@ func migrate(db *sql.DB) error {
 		);
 		CREATE INDEX IF NOT EXISTS idx_scratchpad_post_user
 			ON scratchpad_notes(post_id, user_id);
+
+		CREATE TABLE IF NOT EXISTS sync_state (
+			id       INTEGER PRIMARY KEY CHECK (id = 1),
+			last_seq TEXT NOT NULL DEFAULT ''
+		);
 	`)
 	return err
 }

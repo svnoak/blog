@@ -12,6 +12,7 @@ type Tenant struct {
 	ID               int64
 	Name             string
 	Domain           string
+	Key              string
 	LightTheme       string
 	DarkTheme        string
 	PubFont          string
@@ -39,11 +40,16 @@ const (
 	userIDKey
 )
 
-func UpsertTenant(db *sql.DB, name, domain string) (*Tenant, error) {
+// UpsertTenant creates or updates a tenant by domain. An empty key leaves any
+// existing key untouched (e.g. `bloggy useradd` doesn't know about keys and
+// shouldn't clobber one set via config.toml).
+func UpsertTenant(db *sql.DB, name, domain, key string) (*Tenant, error) {
 	_, err := db.Exec(
-		`INSERT INTO tenants (name, domain) VALUES (?, ?)
-		 ON CONFLICT(domain) DO UPDATE SET name = excluded.name`,
-		name, domain,
+		`INSERT INTO tenants (name, domain, key) VALUES (?, ?, ?)
+		 ON CONFLICT(domain) DO UPDATE SET
+		   name = excluded.name,
+		   key  = CASE WHEN excluded.key != '' THEN excluded.key ELSE tenants.key END`,
+		name, domain, key,
 	)
 	if err != nil {
 		return nil, err
@@ -52,13 +58,32 @@ func UpsertTenant(db *sql.DB, name, domain string) (*Tenant, error) {
 }
 
 func getTenantByDomain(db *sql.DB, domain string) (*Tenant, error) {
-	var t Tenant
-	err := db.QueryRow(
-		`SELECT id, name, domain, light_theme, dark_theme, pub_font, admin_font,
+	return scanTenant(db.QueryRow(
+		`SELECT id, name, domain, key, light_theme, dark_theme, pub_font, admin_font,
 		        about_name, about_handle, about_email, about_since, about_md, about_tagline, portrait_filename,
 		        created_at
 		   FROM tenants WHERE domain = ?`, domain,
-	).Scan(&t.ID, &t.Name, &t.Domain, &t.LightTheme, &t.DarkTheme, &t.PubFont, &t.AdminFont,
+	))
+}
+
+// GetTenantByKey looks up a tenant by its short config key (e.g. from a
+// LiveSync note's `publish:` frontmatter value). Returns nil, nil if no
+// tenant has that key.
+func GetTenantByKey(db *sql.DB, key string) (*Tenant, error) {
+	if key == "" {
+		return nil, nil
+	}
+	return scanTenant(db.QueryRow(
+		`SELECT id, name, domain, key, light_theme, dark_theme, pub_font, admin_font,
+		        about_name, about_handle, about_email, about_since, about_md, about_tagline, portrait_filename,
+		        created_at
+		   FROM tenants WHERE key = ?`, key,
+	))
+}
+
+func scanTenant(row *sql.Row) (*Tenant, error) {
+	var t Tenant
+	err := row.Scan(&t.ID, &t.Name, &t.Domain, &t.Key, &t.LightTheme, &t.DarkTheme, &t.PubFont, &t.AdminFont,
 		&t.AboutName, &t.AboutHandle, &t.AboutEmail, &t.AboutSince, &t.AboutMD, &t.AboutTagline, &t.PortraitFilename,
 		&t.CreatedAt)
 	if err == sql.ErrNoRows {

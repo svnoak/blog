@@ -123,7 +123,7 @@ func runServe(args []string) {
 
 	// Sync tenants from config
 	for _, tc := range cfg.Tenants {
-		if _, err := mw.UpsertTenant(database, tc.Name, tc.Domain); err != nil {
+		if _, err := mw.UpsertTenant(database, tc.Name, tc.Domain, tc.Key); err != nil {
 			log.Fatalf("upsert tenant %s: %v", tc.Domain, err)
 		}
 	}
@@ -230,7 +230,7 @@ func runUseradd(args []string) {
 	defer database.Close()
 
 	// Ensure tenant exists
-	tenant, err := mw.UpsertTenant(database, *domain, *domain)
+	tenant, err := mw.UpsertTenant(database, *domain, *domain, "")
 	if err != nil || tenant == nil {
 		// Try to find an existing tenant for this domain
 		log.Fatalf("domain %q not found in tenants table — add it to config.toml and run 'serve' first", *domain)
