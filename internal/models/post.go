@@ -142,6 +142,61 @@ func DeletePost(db *sql.DB, tenantID, postID int64) error {
 	return err
 }
 
+// GetPostIDBySourceKey returns the post ID previously created for a given
+// LiveSync source key, or ok=false if none exists yet.
+func GetPostIDBySourceKey(db *sql.DB, tenantID int64, sourceKey string) (id int64, ok bool, err error) {
+	err = db.QueryRow(
+		`SELECT id FROM posts WHERE tenant_id = ? AND source_key = ?`, tenantID, sourceKey,
+	).Scan(&id)
+	if err == sql.ErrNoRows {
+		return 0, false, nil
+	}
+	return id, err == nil, err
+}
+
+// UpsertPostFromSource creates or updates the post tied to a LiveSync
+// source key (a CouchDB file doc ID), then publishes it. Reuses the
+// existing CreatePost/UpdatePost/SetPostTags/PublishPost functions rather
+// than duplicating their logic.
+func UpsertPostFromSource(db *sql.DB, tenantID, authorID int64, sourceKey, title, content string, tags []string) (*Post, error) {
+	id, exists, err := GetPostIDBySourceKey(db, tenantID, sourceKey)
+	if err != nil {
+		return nil, err
+	}
+
+	var postID int64
+	if exists {
+		if err := UpdatePost(db, tenantID, id, title, content); err != nil {
+			return nil, err
+		}
+		postID = id
+	} else {
+		post, err := CreatePost(db, tenantID, authorID, title, content)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := db.Exec(`UPDATE posts SET source_key = ? WHERE id = ?`, sourceKey, post.ID); err != nil {
+			return nil, err
+		}
+		postID = post.ID
+	}
+
+	if err := SetPostTags(db, tenantID, postID, strings.Join(tags, ", ")); err != nil {
+		return nil, err
+	}
+	if err := PublishPost(db, tenantID, postID); err != nil {
+		return nil, err
+	}
+	post, err := GetPostByID(db, tenantID, postID)
+	if err != nil {
+		return nil, err
+	}
+	if err := LoadTagsForPosts(db, []*Post{post}); err != nil {
+		return nil, err
+	}
+	return post, nil
+}
+
 func GetPostByID(db *sql.DB, tenantID, postID int64) (*Post, error) {
 	return scanPost(db.QueryRow(
 		`SELECT p.id, p.tenant_id, p.author_id, u.display_name, p.title, p.slug, p.content, p.status, p.published_at, p.created_at, p.updated_at

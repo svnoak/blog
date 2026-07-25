@@ -1,6 +1,7 @@
 package models
 
 import (
+	"crypto/rand"
 	"database/sql"
 	"fmt"
 	"time"
@@ -58,6 +59,47 @@ func AuthenticateUser(db *sql.DB, tenantID int64, email, password string) (*User
 		return nil, nil
 	}
 	return &u, nil
+}
+
+// EnsureSystemUser returns the tenant's system user (author of record for
+// posts synced in from LiveSync), creating it with an unusable random
+// password if it doesn't exist yet. System users never log in through the
+// normal auth flow — AuthenticateUser only ever gets a real password to
+// compare against.
+func EnsureSystemUser(db *sql.DB, tenantID int64, displayName string) (*User, error) {
+	var u User
+	err := db.QueryRow(
+		`SELECT id, tenant_id, email, display_name, created_at FROM users WHERE tenant_id = ? AND is_system = 1`,
+		tenantID,
+	).Scan(&u.ID, &u.TenantID, &u.Email, &u.DisplayName, &u.CreatedAt)
+	if err == nil {
+		return &u, nil
+	}
+	if err != sql.ErrNoRows {
+		return nil, err
+	}
+
+	randomPw := make([]byte, 32)
+	if _, err := rand.Read(randomPw); err != nil {
+		return nil, fmt.Errorf("generate system user secret: %w", err)
+	}
+	hash, err := bcrypt.GenerateFromPassword(randomPw, bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("hash system user secret: %w", err)
+	}
+	email := fmt.Sprintf("sync+system@tenant-%d.internal", tenantID)
+	res, err := db.Exec(
+		`INSERT INTO users (tenant_id, email, display_name, password_hash, is_system) VALUES (?, ?, ?, ?, 1)`,
+		tenantID, email, displayName, string(hash),
+	)
+	if err != nil {
+		return nil, err
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+	return GetUserByID(db, tenantID, id)
 }
 
 func GetUserByID(db *sql.DB, tenantID, id int64) (*User, error) {
