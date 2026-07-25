@@ -131,65 +131,51 @@ func (e ChangeEvent) SeqString() string {
 	return strings.Trim(string(e.Seq), `"`)
 }
 
-// Changes streams the `_changes` feed starting after since (empty string
-// means from the beginning) onto the returned channel, until ctx is
-// canceled or the connection drops — either closes the channel. Callers
-// should treat channel closure as "reconnect with backoff" unless ctx.Err()
-// is non-nil.
-func (c *Client) Changes(ctx context.Context, since string) (<-chan ChangeEvent, <-chan error) {
-	events := make(chan ChangeEvent)
-	errs := make(chan error, 1)
+// Changes follows the `_changes` feed starting after since (empty string
+// means from the beginning of history), calling handler for each event in
+// order. It blocks until ctx is canceled, handler returns an error, or the
+// connection drops, and returns whatever error ended the stream. Callers
+// should treat a non-nil return as "reconnect with backoff" unless
+// ctx.Err() is also non-nil, which means the caller asked to stop.
+func (c *Client) Changes(ctx context.Context, since string, handler func(ChangeEvent) error) error {
+	q := url.Values{
+		"feed":         {"continuous"},
+		"include_docs": {"true"},
+		"heartbeat":    {"30000"},
+		"since":        {sinceOrBeginning(since)},
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/_changes?"+q.Encode(), nil)
+	if err != nil {
+		return err
+	}
+	resp, err := c.do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("livesync: GET _changes: unexpected status %s", resp.Status)
+	}
 
-	go func() {
-		defer close(events)
-		defer close(errs)
-
-		q := url.Values{
-			"feed":         {"continuous"},
-			"include_docs": {"true"},
-			"heartbeat":    {"30000"},
-			"since":        {sinceOrBeginning(since)},
+	scanner := bufio.NewScanner(resp.Body)
+	scanner.Buffer(make([]byte, 0, 64*1024), 8*1024*1024) // notes can be large; grow past bufio's 64KiB default
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" { // heartbeat
+			continue
 		}
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/_changes?"+q.Encode(), nil)
-		if err != nil {
-			errs <- err
-			return
+		var ev ChangeEvent
+		if err := json.Unmarshal([]byte(line), &ev); err != nil {
+			return fmt.Errorf("livesync: decode _changes line: %w", err)
 		}
-		resp, err := c.do(req)
-		if err != nil {
-			errs <- err
-			return
+		if err := handler(ev); err != nil {
+			return err
 		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			errs <- fmt.Errorf("livesync: GET _changes: unexpected status %s", resp.Status)
-			return
-		}
-
-		scanner := bufio.NewScanner(resp.Body)
-		scanner.Buffer(make([]byte, 0, 64*1024), 8*1024*1024) // notes can be large; grow past bufio's 64KiB default
-		for scanner.Scan() {
-			line := strings.TrimSpace(scanner.Text())
-			if line == "" { // heartbeat
-				continue
-			}
-			var ev ChangeEvent
-			if err := json.Unmarshal([]byte(line), &ev); err != nil {
-				errs <- fmt.Errorf("livesync: decode _changes line: %w", err)
-				return
-			}
-			select {
-			case events <- ev:
-			case <-ctx.Done():
-				return
-			}
-		}
-		if err := scanner.Err(); err != nil {
-			errs <- err
-		}
-	}()
-
-	return events, errs
+	}
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+	return ctx.Err()
 }
 
 // sinceOrBeginning returns "0" (CouchDB's "start of change history") when no

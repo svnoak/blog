@@ -197,6 +197,41 @@ func UpsertPostFromSource(db *sql.DB, tenantID, authorID int64, sourceKey, title
 	return post, nil
 }
 
+// UnpublishBySourceKey unpublishes every post tied to a LiveSync source key,
+// across all tenants except exceptTenantID (pass 0 — never a real tenant ID
+// — to unpublish everywhere). Used when a note's publish flag is removed or
+// changed to a different tenant.
+func UnpublishBySourceKey(db *sql.DB, sourceKey string, exceptTenantID int64) error {
+	rows, err := db.Query(
+		`SELECT tenant_id, id FROM posts WHERE source_key = ? AND tenant_id != ?`,
+		sourceKey, exceptTenantID,
+	)
+	if err != nil {
+		return err
+	}
+	type target struct{ tenantID, postID int64 }
+	var targets []target
+	for rows.Next() {
+		var t target
+		if err := rows.Scan(&t.tenantID, &t.postID); err != nil {
+			rows.Close()
+			return err
+		}
+		targets = append(targets, t)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	rows.Close()
+
+	for _, t := range targets {
+		if err := UnpublishPost(db, t.tenantID, t.postID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func GetPostByID(db *sql.DB, tenantID, postID int64) (*Post, error) {
 	return scanPost(db.QueryRow(
 		`SELECT p.id, p.tenant_id, p.author_id, u.display_name, p.title, p.slug, p.content, p.status, p.published_at, p.created_at, p.updated_at
