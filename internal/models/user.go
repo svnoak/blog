@@ -113,15 +113,18 @@ func GetUserByID(db *sql.DB, tenantID, id int64) (*User, error) {
 	return &u, err
 }
 
+// CountUsers counts real (non-system) users — the ones who can actually log
+// in. Used to gate first-run setup vs. login, so a tenant's LiveSync system
+// user (see EnsureSystemUser) never counts as "already set up".
 func CountUsers(db *sql.DB, tenantID int64) (int, error) {
 	var n int
-	err := db.QueryRow(`SELECT COUNT(*) FROM users WHERE tenant_id = ?`, tenantID).Scan(&n)
+	err := db.QueryRow(`SELECT COUNT(*) FROM users WHERE tenant_id = ? AND is_system = 0`, tenantID).Scan(&n)
 	return n, err
 }
 
 func ListUsers(db *sql.DB, tenantID int64) ([]*User, error) {
 	rows, err := db.Query(
-		`SELECT id, tenant_id, email, display_name, created_at FROM users WHERE tenant_id = ? ORDER BY created_at ASC`,
+		`SELECT id, tenant_id, email, display_name, created_at FROM users WHERE tenant_id = ? AND is_system = 0 ORDER BY created_at ASC`,
 		tenantID,
 	)
 	if err != nil {

@@ -121,3 +121,24 @@ func TestEnsureSystemUser_IdempotentAndCannotAuthenticate(t *testing.T) {
 		t.Errorf("expected system user to never authenticate, got user=%v err=%v", authed, err)
 	}
 }
+
+func TestCountUsers_ExcludesSystemUser(t *testing.T) {
+	database, tenantID, _ := setupTestDB(t)
+
+	// setupTestDB already created one real user.
+	if n, err := CountUsers(database, tenantID); err != nil || n != 1 {
+		t.Fatalf("CountUsers before system user: got %d, %v; want 1", n, err)
+	}
+
+	if _, err := EnsureSystemUser(database, tenantID, "LiveSync Sync"); err != nil {
+		t.Fatalf("EnsureSystemUser: %v", err)
+	}
+
+	n, err := CountUsers(database, tenantID)
+	if err != nil {
+		t.Fatalf("CountUsers after system user: %v", err)
+	}
+	if n != 1 {
+		t.Errorf("CountUsers should still be 1 after EnsureSystemUser (setup/login gating must not see it), got %d", n)
+	}
+}
